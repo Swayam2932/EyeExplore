@@ -172,14 +172,14 @@ def scanpath(DATASET_NAME, STIMULUS_NAME, subject = 0):
     scanpath = np.zeros((len(scanpath_file_lines), 4))
 
     for i in range(len(scanpath)):
-        scanpath[i] = np.array(scanpath_file_lines[i].split()).astype(np.cfloat)
+        scanpath[i] = np.array(scanpath_file_lines[i].split()).astype(np.complex128)
 
     return scanpath
 
 
 #########################################################################################
 
-def scanpath_aoi(DATASET_NAME, STIMULUS_NAME, SUBJECTS, AOI, AOI_TYPE):
+def scanpath_aoi(DATASET_NAME, STIMULUS_NAME, SUBJECTS, AOI=[], AOI_TYPE="rect"):
 
     ''' This functions returns a dictionary of scanpaths of a specified stimulus,
         for each given participant. The scanpath matrix contains a row
@@ -220,7 +220,7 @@ def scanpath_aoi(DATASET_NAME, STIMULUS_NAME, SUBJECTS, AOI, AOI_TYPE):
             scanpath = np.zeros((len(scanpath_file_lines), 5))
 
             for i in range(len(scanpath)):
-                scanpath[i, 0:4] = np.array(scanpath_file_lines[i].split()).astype(np.cfloat)
+                scanpath[i, 0:4] = np.array(scanpath_file_lines[i].split()).astype(np.complex128)
                 point = Point(scanpath[i, 0], scanpath[i, 1])
                 for j in range(len(polygons)):
                     if polygons[j].contains(point):

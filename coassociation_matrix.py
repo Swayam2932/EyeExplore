@@ -1,146 +1,137 @@
 import FixaTons
-import plotly.graph_objects as go
+import numpy as np
 import plotly.express as px
-from scipy.ndimage.filters import gaussian_filter
-from scipy import signal
-import numpy as np
-from PIL import Image
-import numpy as np
 import plotly.graph_objects as go
-import skimage.io as sio
-import cv2 as cv
-from PIL import Image, ImageChops
-import pandas as pd
-import matplotlib.pyplot as plt
-from kneed import KneeLocator
-from sklearn.cluster import KMeans
-from sklearn.cluster import AgglomerativeClustering
-from sklearn.cluster import SpectralClustering
-from sklearn.cluster import DBSCAN
-from sklearn.metrics import silhouette_score
+from scipy.ndimage import gaussian_filter
+from scipy.spatial.distance import cdist
 from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import normalize
-from sklearn.decomposition import PCA
-from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans, AgglomerativeClustering, SpectralClustering
 
 
+def compute_coasso(DATASET_NAME='MIT1003', STIMULUS_SET=None, subjects=None, show_fig=False):
+    """Compute a co-association matrix using the Heatmap-based (Vectorized) approach.
 
-DATASET_NAME = 'MIT1003'
-STIMULUS_SET = [#'i05june05_static_street_boston_p1010785.jpeg' # 2 cars
-                 # 'i1032358.jpeg',
-                 # 'i202396633.jpeg',
-                 # 'i2244445589.jpeg', # Girl and Abe Lincoln
-                  # 'i1040585936.jpeg' # Plate of food and guy
-                  'i2289665173.jpeg' # Golden gate bridge
-                # 'i666418509.jpeg' # tiger
-                ]
+    Returns: (coassociation_matrix (ndarray), subjects (list), subjects (list))
+    """
+    if STIMULUS_SET is None:
+        STIMULUS_SET = ['i2289665173.jpeg']
 
+    if subjects is None:
+        if len(STIMULUS_SET) > 0:
+            try:
+                subjects = FixaTons.info.subjects(DATASET_NAME, STIMULUS_SET[0])
+            except Exception:
+                subjects = []
+        else:
+            subjects = []
+    else:
+        subjects = list(subjects)
 
-coassociation_matrix = np.zeros([15,15])
-for stimulus in STIMULUS_SET:
-    image = FixaTons.get.stimulus(DATASET_NAME, stimulus)
-    subjects = FixaTons.info.subjects(DATASET_NAME, stimulus)
-    distance_matrix = np.zeros([15,15])
-    image_width, image_height = FixaTons.get.stimulus_size(DATASET_NAME, stimulus)
-    for SUBJECT_NAME_1 in subjects:
-        for SUBJECT_NAME_2 in subjects:
-            result = FixaTons.metrics.string_based_time_delay_embedding_distance(
-                                    FixaTons.get.scanpath(DATASET_NAME, stimulus, SUBJECT_NAME_1),
-                                    FixaTons.get.scanpath(DATASET_NAME, stimulus, SUBJECT_NAME_2),
-                                    image_width, image_height, k = 3, distance_mode='Hausdorff')
-            print(stimulus, SUBJECT_NAME_1, SUBJECT_NAME_2, result)
-            distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = result
-            # if result < 100: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 1
-            # elif result < 200: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 2
-            # elif result < 300: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 3
-            # else: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 4
+    n_subjects = len(subjects)
+    if n_subjects == 0:
+        return np.zeros([0, 0]), [], []
 
+    coassociation_matrix = np.zeros([n_subjects, n_subjects])
 
-    # for SUBJECT_NAME_1 in subjects:
-    #     for SUBJECT_NAME_2 in subjects:
-    #         result = FixaTons.metrics.time_delay_embedding_distance(
-    #                                 FixaTons.get.scanpath(DATASET_NAME, stimulus, SUBJECT_NAME_1),
-    #                                 FixaTons.get.scanpath(DATASET_NAME, stimulus, SUBJECT_NAME_2), 3,
-    #                                 'Mean')
-    #         print(stimulus, SUBJECT_NAME_1, SUBJECT_NAME_2, result)
-    #         distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = result
-    #         # if result < 100: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 1
-    #         # elif result < 200: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 2
-    #         # elif result < 300: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 3
-    #         # else: distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = 4
+    for stimulus in STIMULUS_SET:
+        try:
+            image_width, image_height = FixaTons.get.stimulus_size(DATASET_NAME, stimulus)
+            all_stim_subjects = FixaTons.info.subjects(DATASET_NAME, stimulus)
+        except Exception:
+            continue
+            
+        current_subjects = [s for s in subjects if s in all_stim_subjects]
+        n_curr = len(current_subjects)
+        if n_curr == 0:
+            continue
 
-    # for SUBJECT_NAME_1 in subjects:
-    #     for SUBJECT_NAME_2 in subjects:
-    #         result = FixaTons.metrics.scaled_time_delay_embedding_distance(
-    #                                 FixaTons.get.scanpath(DATASET_NAME, stimulus, SUBJECT_NAME_1),
-    #                                 FixaTons.get.scanpath(DATASET_NAME, stimulus, SUBJECT_NAME_2), image)
-    #         # if result > 0.5:
-    #         distance_matrix[subjects.index(SUBJECT_NAME_1)][subjects.index(SUBJECT_NAME_2)] = result
+        # We build a downsampled fixation heatmap for each participant
+        H, W = 64, 64  # Downsampled dimensions for performance
+        H_flat = np.zeros((n_curr, H * W))
 
-    # fig2 = px.imshow(distance_matrix, text_auto=True, x=subjects, y=subjects)
-    # fig2.show()
+        for idx, sub in enumerate(current_subjects):
+            try:
+                scanpath_data = FixaTons.get.scanpath(DATASET_NAME, stimulus, sub)
+            except Exception:
+                continue
+            
+            grid = np.zeros((H, W))
+            for fixation in scanpath_data:
+                # each row: [x, y, time_from, time_to]
+                x, y, t_start, t_end = fixation[0], fixation[1], fixation[2], fixation[3]
+                duration = max(0.0, t_end - t_start)
+                col = int(x * (W - 1) / image_width)
+                row = int(y * (H - 1) / image_height)
+                if 0 <= col < W and 0 <= row < H:
+                    grid[row, col] += duration
+            
+            # Smooth the individual's attention map using gaussian filter
+            smoothed = gaussian_filter(grid, sigma=2.0)
+            H_flat[idx] = smoothed.flatten()
 
-    #Feature scaling
-    distance_matrix = np.nan_to_num(distance_matrix)
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(distance_matrix)
+        # Compute pairwise Euclidean distances between subject heatmaps (fully vectorized)
+        distance_matrix = cdist(H_flat, H_flat, metric='euclidean')
 
-    k = 4
+        # Feature scaling
+        distance_matrix = np.nan_to_num(distance_matrix)
+        scaler = StandardScaler()
+        scaled_features = scaler.fit_transform(distance_matrix)
 
-    #K-means
-    kmeans = KMeans(init="random",n_clusters=k,n_init=10,max_iter=300) # k=4, as determined by the elbow method
-    kmeans.fit(scaled_features)
-    labels_kmeans = kmeans.labels_
-    print(subjects)
-    print(labels_kmeans)
+        k = min(4, n_curr)
 
-    #Hierarchical clustering
-    hierarchical_cluster = AgglomerativeClustering(n_clusters=k,  linkage='ward', affinity="euclidean")
-    labels_hierarchical = hierarchical_cluster.fit_predict(scaled_features)
-    print(labels_hierarchical)
+        if k >= 2:
+            # K-means
+            try:
+                kmeans = KMeans(init="random", n_clusters=k, n_init=10, max_iter=300)
+                kmeans.fit(scaled_features)
+                labels_kmeans = kmeans.labels_
+                has_kmeans = True
+            except Exception:
+                has_kmeans = False
 
-    #Spectral clustering
-    spectral_model_nn = SpectralClustering(n_clusters=k, affinity='nearest_neighbors')
-    labels_spectral = spectral_model_nn.fit_predict(scaled_features)
-    print(labels_spectral)
+            # Hierarchical clustering
+            try:
+                hierarchical_cluster = AgglomerativeClustering(n_clusters=k, linkage='ward', metric="euclidean")
+                labels_hierarchical = hierarchical_cluster.fit_predict(scaled_features)
+                has_hierarchical = True
+            except Exception:
+                has_hierarchical = False
 
-    # #DBSCAN clustering
-    # dbscan = DBSCAN(eps = 0.001, min_samples = 2).fit(scaled_features)
-    # labels_dbscan = dbscan.labels_
-    # print(labels_dbscan)
+            # Spectral clustering
+            has_spectral = False
+            if k < n_curr:
+                try:
+                    spectral_model_nn = SpectralClustering(n_clusters=k, affinity='nearest_neighbors', n_neighbors=min(10, n_curr - 1))
+                    labels_spectral = spectral_model_nn.fit_predict(scaled_features)
+                    has_spectral = True
+                except Exception:
+                    pass
 
-    for subject_1 in range(len(subjects)):
-        for subject_2 in range(len(subjects)):
-            if (labels_kmeans[subject_1] == labels_kmeans[subject_2]):
-                coassociation_matrix[subject_1][subject_2] += 1
-            if (labels_hierarchical[subject_1] == labels_hierarchical[subject_2]):
-                coassociation_matrix[subject_1][subject_2] += 1
-            if (labels_spectral[subject_1] == labels_spectral[subject_2]):
-                coassociation_matrix[subject_1][subject_2] += 1
-            # if (labels_dbscan[subject_1] == labels_dbscan[subject_2]):
-            #     coassociation_matrix[subject_1][subject_2] += 1
+            for subject_1 in range(n_curr):
+                for subject_2 in range(n_curr):
+                    try:
+                        g_idx1 = subjects.index(current_subjects[subject_1])
+                        g_idx2 = subjects.index(current_subjects[subject_2])
+                        if has_kmeans and labels_kmeans[subject_1] == labels_kmeans[subject_2]:
+                            coassociation_matrix[g_idx1][g_idx2] += 1
+                        if has_hierarchical and labels_hierarchical[subject_1] == labels_hierarchical[subject_2]:
+                            coassociation_matrix[g_idx1][g_idx2] += 1
+                        if has_spectral and labels_spectral[subject_1] == labels_spectral[subject_2]:
+                            coassociation_matrix[g_idx1][g_idx2] += 1
+                    except (ValueError, IndexError):
+                        pass
 
-coassociation_matrix = coassociation_matrix/3  # Average of 3 clustering method results
-fig1 = px.imshow(coassociation_matrix, x=subjects, y=subjects, color_continuous_scale='balance',  range_color=[0,1])
-fig1.show()
-#
-# kmeans_kwargs = {"init": "random","n_init": 10,"max_iter": 300}
-# sse = []
-# for k in range(1, 11):
-#     kmeans = KMeans(n_clusters=k, **kmeans_kwargs)
-#     kmeans.fit(scaled_features)
-#     sse.append(kmeans.inertia_)
-#
-# plt.style.use("fivethirtyeight")
-# plt.plot(range(1, 11), sse)
-# plt.xticks(range(1, 11))
-# plt.xlabel("Number of Clusters")
-# plt.ylabel("SSE")
-# plt.show()
-# kl = KneeLocator(range(1, 11), sse, curve="convex", direction="decreasing")
-# print(kl.elbow)
+    # Probabilistic normalization: make each row sum to 1
+    row_sums = coassociation_matrix.sum(axis=1, keepdims=True)
+    coassociation_matrix = np.divide(
+        coassociation_matrix,
+        row_sums,
+        out=np.zeros_like(coassociation_matrix),
+        where=row_sums != 0
+    )
 
+    if show_fig and subjects is not None:
+        fig1 = px.imshow(coassociation_matrix, x=subjects, y=subjects, color_continuous_scale='balance', range_color=[0, 1])
+        fig1.show()
 
-# fig1 = px.imshow(distance_matrix, text_auto=True, x=subjects, y=subjects)
-# fig1.show()
-
+    return coassociation_matrix, subjects, subjects

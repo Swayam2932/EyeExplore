@@ -1,0 +1,21 @@
+# Virtual environment
+eye/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+FixaTons_methods/__pycache__/
+
+# OS files
+.DS_Store
+**/.DS_Store
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Video data (large files)
+videodata/
+
+# Models (large files)
+models/

@@ -8,8 +8,9 @@ COLLECTION_PATH = os.path.join(
 )
 
 COLLECTION_PATH = os.path.join(
-    'data\FixaTons',
-    ''
+    os.path.dirname(os.path.abspath(__file__)),
+    'data',
+    'FixaTons'
 )
 
 '''

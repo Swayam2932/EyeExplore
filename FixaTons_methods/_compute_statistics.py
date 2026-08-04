@@ -115,7 +115,7 @@ def AOI_transition_matrix(DATASET_NAME, STIMULUS_NAME, AOI, AOI_TYPE):
         scanpath = np.zeros((len(scanpath_file_lines), 5))
 
         for i in range(len(scanpath)):
-            scanpath[i, 0:4] = np.array(scanpath_file_lines[i].split()).astype(np.cfloat)
+            scanpath[i, 0:4] = np.array(scanpath_file_lines[i].split()).astype(np.complex128)
             point = Point(scanpath[i, 0], scanpath[i, 1])
             for j in range(len(polygons)):
                 if polygons[j].contains(point):
