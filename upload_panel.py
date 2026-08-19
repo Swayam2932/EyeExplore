@@ -37,7 +37,7 @@ MAX_SCANPATH_SIZE_MB = 5
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def make_mode_toggle():
-    """Segmented control: Built-in Datasets / My Own Data."""
+    """Segmented control: Built-in Datasets / My Own Data / K-Coefficient Data."""
     return html.Div([
         html.Div([
             html.Button(
@@ -49,6 +49,12 @@ def make_mode_toggle():
             html.Button(
                 '📁 My Own Data',
                 id='btn-mode-custom',
+                n_clicks=0,
+                className='mode-toggle-btn',
+            ),
+            html.Button(
+                '🧠 K-Coefficient Dataset',
+                id='btn-mode-kdataset',
                 n_clicks=0,
                 className='mode-toggle-btn',
             ),
@@ -286,18 +292,21 @@ def register_callbacks(app):
         Output('data-source-mode', 'data'),
         Output('btn-mode-builtin', 'className'),
         Output('btn-mode-custom', 'className'),
+        Output('btn-mode-kdataset', 'className'),
         Output('builtin-controls-container', 'style'),
         Output('custom-controls-container', 'style'),
+        Output('k-controls-container', 'style'),
         Output('ddParticipants-left', 'options', allow_duplicate=True),
         Output('ddParticipants-left', 'value', allow_duplicate=True),
         Output('ddParticipants-right', 'options', allow_duplicate=True),
         Output('ddParticipants-right', 'value', allow_duplicate=True),
         [Input('btn-mode-builtin', 'n_clicks'),
-         Input('btn-mode-custom', 'n_clicks')],
+         Input('btn-mode-custom', 'n_clicks'),
+         Input('btn-mode-kdataset', 'n_clicks')],
         [State('custom-scanpaths-store', 'data')],
         prevent_initial_call=True
     )
-    def toggle_mode(builtin_clicks, custom_clicks, custom_scanpaths):
+    def toggle_mode(builtin_clicks, custom_clicks, kdataset_clicks, custom_scanpaths):
         trigger = ctx.triggered_id
 
         if trigger == 'btn-mode-custom':
@@ -316,9 +325,29 @@ def register_callbacks(app):
                 'custom',
                 'mode-toggle-btn',
                 'mode-toggle-btn mode-toggle-active',
+                'mode-toggle-btn',
                 {'display': 'none'},
                 {'display': 'flex', 'gap': '16px',
                  'alignItems': 'flex-start', 'flex': '2'},
+                {'display': 'none'},
+                participant_options,
+                participant_values,
+                participant_options,
+                participant_values,
+            )
+        elif trigger == 'btn-mode-kdataset':
+            # Switching TO K-Coefficient Dataset mode
+            import k_dataset
+            participant_options = [{'label': str(p), 'value': str(p)} for p in k_dataset.K_PARTICIPANTS]
+            participant_values = [str(k_dataset.K_PARTICIPANTS[0])] if k_dataset.K_PARTICIPANTS else []
+            return (
+                'k_dataset',
+                'mode-toggle-btn',
+                'mode-toggle-btn',
+                'mode-toggle-btn mode-toggle-active',
+                {'display': 'none'},
+                {'display': 'none'},
+                {'display': 'flex', 'gap': '16px', 'alignItems': 'flex-start', 'flex': '2'},
                 participant_options,
                 participant_values,
                 participant_options,
@@ -331,9 +360,11 @@ def register_callbacks(app):
                 'builtin',
                 'mode-toggle-btn mode-toggle-active',
                 'mode-toggle-btn',
+                'mode-toggle-btn',
                 {'display': 'contents'},
                 {'display': 'none', 'gap': '16px',
                  'alignItems': 'flex-start', 'flex': '2'},
+                {'display': 'none'},
                 [],
                 [],
                 [],
@@ -682,8 +713,8 @@ def register_callbacks(app):
         try:
             delimiter = sc.sniff_delimiter(newest_text)
             df_preview, _ = sc.parse_raw_table(newest_text, delimiter)
-            num_cols = len(df_preview.columns)
-            mapper = _build_column_mapper(num_cols, format_type)
+            columns = df_preview.columns.tolist()
+            mapper = _build_column_mapper(columns, format_type)
 
             return (json.dumps(raw_texts), all_chips, '',
                     {'display': 'block'}, mapper, False)
@@ -709,8 +740,8 @@ def register_callbacks(app):
         try:
             delimiter = sc.sniff_delimiter(first_text)
             df_preview, _ = sc.parse_raw_table(first_text, delimiter)
-            num_cols = len(df_preview.columns)
-            return _build_column_mapper(num_cols, format_type)
+            columns = df_preview.columns.tolist()
+            return _build_column_mapper(columns, format_type)
         except Exception:
             return no_update
     
@@ -868,36 +899,78 @@ def register_callbacks(app):
 # HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _build_column_mapper(num_cols, format_type):
+def _build_column_mapper(columns, format_type):
     """Build column mapping dropdowns based on detected column count and format type."""
+    num_cols = len(columns)
     if format_type == 'explicit':
         options = [
             {'label': 'X coordinate', 'value': 'X'},
             {'label': 'Y coordinate', 'value': 'Y'},
             {'label': 'Start time', 'value': 'START'},
             {'label': 'End time', 'value': 'END'},
+            {'label': 'Saccade Amplitude', 'value': 'SACCADE_AMPLITUDE'},
+            {'label': 'Raw K-Coefficient', 'value': 'K_i'},
+            {'label': 'Squashed K-Coefficient', 'value': 'K_squashed'},
             {'label': 'Ignore this column', 'value': 'IGNORE'},
         ]
-        # Auto-assign defaults for common 4-column case
-        defaults = {0: 'X', 1: 'Y', 2: 'START', 3: 'END'}
+        fallback_defaults = {0: 'X', 1: 'Y', 2: 'START', 3: 'END'}
     else:
         options = [
             {'label': 'X coordinate', 'value': 'X'},
             {'label': 'Y coordinate', 'value': 'Y'},
             {'label': 'Cumulative time', 'value': 'T'},
+            {'label': 'Saccade Amplitude', 'value': 'SACCADE_AMPLITUDE'},
+            {'label': 'Raw K-Coefficient', 'value': 'K_i'},
+            {'label': 'Squashed K-Coefficient', 'value': 'K_squashed'},
             {'label': 'Ignore this column', 'value': 'IGNORE'},
         ]
-        defaults = {0: 'X', 1: 'Y', 2: 'T'}
+        fallback_defaults = {0: 'X', 1: 'Y', 2: 'T'}
     
     mapper_rows = []
+    assigned_defaults = set()
     for i in range(num_cols):
-        default_val = defaults.get(i, 'IGNORE')
+        col_name = str(columns[i])
+        
+        # Smart mapping based on common K-Dataset column names
+        default_val = 'IGNORE'
+        col_lower = col_name.lower()
+        
+        if format_type == 'explicit':
+            if col_lower in ['fixation_point_x', 'x'] or col_name == 'Col_1': default_val = 'X'
+            elif col_lower in ['fixation_point_y', 'y'] or col_name == 'Col_2': default_val = 'Y'
+            elif col_lower in ['fixation_starts_at_ms', 'start_time'] or col_name == 'Col_3': default_val = 'START'
+            elif col_lower in ['fixation_ends_at_ms', 'end_time'] or col_name == 'Col_4': default_val = 'END'
+            elif col_lower in ['saccade_length_px', 'saccade_amplitude_percent', 'saccade_amplitude']: default_val = 'SACCADE_AMPLITUDE'
+            elif col_name == 'K_i': default_val = 'K_i'
+            elif col_name == 'K_squashed': default_val = 'K_squashed'
+            elif default_val == 'IGNORE':
+                default_val = fallback_defaults.get(i, 'IGNORE') if col_name.startswith('Col_') else 'IGNORE'
+        else:
+            if col_lower in ['fixation_point_x', 'x'] or col_name == 'Col_1': default_val = 'X'
+            elif col_lower in ['fixation_point_y', 'y'] or col_name == 'Col_2': default_val = 'Y'
+            elif col_lower in ['fixation_ends_at_ms', 'time', 't'] or col_name == 'Col_3': default_val = 'T'
+            elif col_lower in ['saccade_length_px', 'saccade_amplitude_percent', 'saccade_amplitude']: default_val = 'SACCADE_AMPLITUDE'
+            elif col_name == 'K_i': default_val = 'K_i'
+            elif col_name == 'K_squashed': default_val = 'K_squashed'
+            elif default_val == 'IGNORE':
+                default_val = fallback_defaults.get(i, 'IGNORE') if col_name.startswith('Col_') else 'IGNORE'
+                
+        # Prevent assigning the same meaning to multiple columns (except IGNORE)
+        if default_val != 'IGNORE':
+            if default_val in assigned_defaults:
+                default_val = 'IGNORE'
+            else:
+                assigned_defaults.add(default_val)
+                
+        # truncate long column names for display
+        display_name = col_name if len(col_name) <= 25 else col_name[:22] + "..."
+                
         mapper_rows.append(
             html.Div([
-                html.Span(f'Column {i + 1}', style={
-                    'fontWeight': '600', 'fontSize': '12px', 'minWidth': '70px',
-                    'color': '#555',
-                }),
+                html.Span(f'Col {i + 1}: {display_name}', style={
+                    'fontWeight': '600', 'fontSize': '12px', 'minWidth': '180px', 'maxWidth': '180px',
+                    'color': '#555', 'overflow': 'hidden', 'textOverflow': 'ellipsis', 'whiteSpace': 'nowrap'
+                }, title=col_name),
                 dcc.Dropdown(
                     id={'type': 'col-mapping-dd', 'index': i},
                     options=options,

@@ -32,6 +32,8 @@ from ultralytics import YOLO
 import semantic_segmentation as sem_seg
 import upload_panel
 import scanpath_converter as sc
+import k_dataset
+import k_visualizations
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS & CONFIGURATION
@@ -52,6 +54,9 @@ PLOT_TYPES = [
     {'value': 'coassociation', 'label': 'Co-association Matrix', 'icon': 'bi-grid-3x3-gap-fill'},
     {'value': 'detection',     'label': 'Object Detection',      'icon': 'bi-bounding-box'},
     {'value': 'transition',    'label': 'Transition Matrix',     'icon': 'bi-arrow-left-right'},
+    {'value': 'k_scanpath',    'label': 'K-Colored Scanpath',    'icon': 'bi-palette-fill'},
+    {'value': 'k_timeline',    'label': 'K-Coefficient Timeline','icon': 'bi-activity'},
+    {'value': 'k_heatmap',     'label': 'Focal/Ambient Heatmap', 'icon': 'bi-thermometer-half'},
 ]
 
 DROPDOWN_OPTIONS = [{'label': pt['label'], 'value': pt['value']} for pt in PLOT_TYPES]
@@ -210,7 +215,7 @@ def empty_figure(message="Select options to visualize"):
         )],
         paper_bgcolor='#fafafa',
         plot_bgcolor='#fafafa',
-        height=520,
+
         margin=dict(l=20, r=20, t=20, b=20),
     )
     return fig
@@ -230,7 +235,7 @@ def make_stimulus_figure(db_name, stimulus, aoi_list, aoi_type_val):
         margin=dict(l=0, r=0, t=35, b=0),
         title="Stimulus — Draw AOI regions",
         title_x=0.5, title_font_size=13,
-        height=520,
+
     )
     # Render existing AOI shapes
     for aoi_item in aoi_list:
@@ -271,14 +276,14 @@ def make_scanpath_figure(db_name, stimulus, participants, aoi_list, aoi_type_val
     fig.add_layout_image(source=image_url, xref="x", yref="y", x=0, y=image_height,
                          sizex=image_width, sizey=image_height,
                          sizing="stretch", opacity=1, layer="below")
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(visible=False, constrain="domain")
+    fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1, constrain="domain")
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=0, r=0, t=35, b=10),
         title=f"Scanpath Animation",
         title_x=0.5, title_font_size=13,
-        height=580,
+
     )
     if fig.layout.sliders:
         fig.layout.sliders[0].pad = {"t": 20, "r": 10, "b": 10}
@@ -344,14 +349,14 @@ def make_scanpath_overlay_figure(db_name, stimulus, participant, aoi_list, aoi_t
         )
     )
 
-    fig.update_xaxes(visible=False, range=[0, image_width])
-    fig.update_yaxes(visible=False, range=[image_height, 0], scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(visible=False, range=[0, image_width], constrain="domain")
+    fig.update_yaxes(visible=False, range=[image_height, 0], scaleanchor="x", scaleratio=1, constrain="domain")
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=0, r=0, t=35, b=0),
         title=f"Scanpath Overlay — {participant}",
         title_x=0.5, title_font_size=13,
-        height=580,
+
     )
     return fig
 
@@ -388,7 +393,7 @@ def make_attention_figure(db_name, stimulus, participants=None):
         margin=dict(l=0, r=0, t=35, b=0),
         title="Attention Map",
         title_x=0.5, title_font_size=13,
-        height=580,
+
     )
     return fig
 
@@ -407,7 +412,7 @@ def make_scarf_figure(db_name, stimulus, participants, aoi_list, aoi_type_val):
         margin=dict(l=0, r=0, t=35, b=0),
         title="Scarf Plot",
         title_x=0.5, title_font_size=13,
-        height=520,
+
     )
     return fig
 
@@ -423,7 +428,7 @@ def make_timeline_figure(db_name, stimulus, participants, aoi_list, aoi_type_val
         margin=dict(l=0, r=0, t=35, b=0),
         title="AOI Timeline",
         title_x=0.5, title_font_size=13,
-        height=520,
+
     )
     return fig
 
@@ -446,7 +451,7 @@ def make_3d_scanpath_figure(db_name, stimulus, participants, aoi_list, aoi_type_
         margin=dict(l=0, r=0, t=35, b=0),
         title="3D Scanpath",
         title_x=0.5, title_font_size=13,
-        height=560,
+
     )
     return fig
 
@@ -470,7 +475,7 @@ def make_3d_scatter_figure(db_name, stimulus, participants, aoi_list, aoi_type_v
         margin=dict(l=0, r=0, t=35, b=0),
         title="3D Scatter",
         title_x=0.5, title_font_size=13,
-        height=560,
+
     )
     return fig
 
@@ -496,7 +501,7 @@ def make_coassociation_figure(db_name, stimulus, participants):
         margin=dict(l=0, r=0, t=35, b=0),
         title="Co-association Matrix",
         title_x=0.5, title_font_size=13,
-        height=520,
+
     )
     return fig
 
@@ -529,7 +534,7 @@ def make_detection_figure_wrapper(db_name, stimulus):
             print(f'[app] Segmentation error: {exc}')
             fig = empty_figure("Segmentation unavailable")
 
-    fig.update_layout(margin=dict(l=0, r=0, t=40, b=0), height=520)
+    fig.update_layout(margin=dict(l=0, r=0, t=40, b=0))
     return fig
 
 
@@ -548,7 +553,7 @@ def make_transition_figure(db_name, stimulus, aoi_list, aoi_type_val):
         margin=dict(l=0, r=0, t=35, b=0),
         title="AOI Transition Matrix",
         title_x=0.5, title_font_size=13,
-        height=520,
+
     )
     return fig
 
@@ -618,22 +623,22 @@ def generate_figure(plot_type, db_name, stimulus, participants, aoi_list, aoi_ty
 
 def _decode_custom_image(custom_image_store):
     """Decode custom image from store data to numpy array and metadata."""
+    if not custom_image_store or not custom_image_store.get('b64'):
+        return None, custom_image_store.get('width', 1920) if custom_image_store else 1920, custom_image_store.get('height', 1080) if custom_image_store else 1080, custom_image_store.get('url') if custom_image_store else None
+        
     b64 = custom_image_store['b64']
     decoded = base64.b64decode(b64)
     img = Image.open(io.BytesIO(decoded)).convert('RGB')
     img_array = np.array(img)
-    width = custom_image_store['width']
-    height = custom_image_store['height']
+    width = custom_image_store.get('width', img.width)
+    height = custom_image_store.get('height', img.height)
     content_type = custom_image_store.get('content_type', 'data:image/png;base64')
     image_url = f'{content_type},{b64}'
     return img_array, width, height, image_url
 
 
-def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store=None):
-    """Deserialize selected participants' DataFrames from the store and filter by keyframe time window if active."""
-    if not custom_scanpaths_store:
-        return []
-    store = json.loads(custom_scanpaths_store)
+def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store=None, override_dfs=None):
+    """Deserialize selected participants' DataFrames from the store (or override_dfs) and filter by keyframe time window if active."""
     dfs = []
 
     kf_start = None
@@ -642,51 +647,60 @@ def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_
         kf_start = custom_image_store.get('keyframe_time_start')
         kf_end = custom_image_store.get('keyframe_time_end')
 
+    store = json.loads(custom_scanpaths_store) if custom_scanpaths_store else {}
+
     for p in (participants or []):
-        if p in store:
-            df = pd.read_json(io.StringIO(store[p]), orient='split')
-            if df.empty:
+        df = None
+        if override_dfs is not None and p in override_dfs:
+            df = override_dfs[p].copy()
+        elif p in store and store[p] != 'k':
+            try:
+                df = pd.read_json(io.StringIO(store[p]), orient='split')
+            except Exception:
                 continue
+                
+        if df is None or df.empty:
+            continue
 
-            if kf_start is not None:
-                max_t = df['TIME_TO'].max() if not df.empty else 0
-                # Smart time unit detection:
-                # If scanpath max_t is > 50 and keyframe start is in seconds, scanpath is in ms
-                scale = 1000.0 if (max_t > 50.0 and kf_start < 50.0) else 1.0
+        if kf_start is not None:
+            max_t = df['TIME_TO'].max() if not df.empty else 0
+            # Smart time unit detection:
+            # If scanpath max_t is > 50 and keyframe start is in seconds, scanpath is in ms
+            scale = 1000.0 if (max_t > 50.0 and kf_start < 50.0) else 1.0
 
-                t0 = kf_start * scale
-                t1 = kf_end * scale if kf_end is not None else None
+            t0 = kf_start * scale
+            t1 = kf_end * scale if kf_end is not None else None
 
-                # Step 1: Strict time window filter
-                if t1 is not None:
-                    filtered_df = df[(df['TIME_TO'] >= t0) & (df['TIME_FROM'] <= t1)].copy()
+            # Step 1: Strict time window filter
+            if t1 is not None:
+                filtered_df = df[(df['TIME_TO'] >= t0) & (df['TIME_FROM'] <= t1)].copy()
+            else:
+                filtered_df = df[df['TIME_TO'] >= t0].copy()
+
+            # Step 2: Fallback - Fixation active AT t0
+            if filtered_df.empty and not df.empty:
+                active_at_t0 = df[(df['TIME_FROM'] <= t0) & (df['TIME_TO'] >= t0)]
+                if not active_at_t0.empty:
+                    filtered_df = active_at_t0.copy()
+
+            # Step 3: Fallback - Most recent fixation up to t0 (or t1)
+            if filtered_df.empty and not df.empty:
+                target_time = t1 if t1 is not None else t0
+                up_to_target = df[df['TIME_FROM'] <= target_time]
+                if not up_to_target.empty:
+                    filtered_df = up_to_target.tail(1).copy()
                 else:
-                    filtered_df = df[df['TIME_TO'] >= t0].copy()
+                    filtered_df = df.head(1).copy()
 
-                # Step 2: Fallback - Fixation active AT t0
-                if filtered_df.empty and not df.empty:
-                    active_at_t0 = df[(df['TIME_FROM'] <= t0) & (df['TIME_TO'] >= t0)]
-                    if not active_at_t0.empty:
-                        filtered_df = active_at_t0.copy()
+            df = filtered_df
 
-                # Step 3: Fallback - Most recent fixation up to t0 (or t1)
-                if filtered_df.empty and not df.empty:
-                    target_time = t1 if t1 is not None else t0
-                    up_to_target = df[df['TIME_FROM'] <= target_time]
-                    if not up_to_target.empty:
-                        filtered_df = up_to_target.tail(1).copy()
-                    else:
-                        filtered_df = df.head(1).copy()
-
-                df = filtered_df
-
-            if not df.empty:
-                dfs.append(df)
+        if not df.empty:
+            dfs.append(df)
     return dfs
 
 
 def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store,
-                           participants, aoi_list, aoi_type_val):
+                           participants, aoi_list, aoi_type_val, override_dfs=None):
     """Master dispatcher for custom-mode — uses uploaded data instead of FixaTons."""
     if not custom_image_store:
         return empty_figure("Upload a stimulus image to begin")
@@ -697,16 +711,30 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
 
         # ── Stimulus ──
         if plot_type == 'stimulus':
-            fig = px.imshow(img_array)
-            fig.update_xaxes(visible=False)
-            fig.update_yaxes(visible=False)
+            if img_array is not None:
+                fig = px.imshow(img_array)
+                fig.update_xaxes(visible=False)
+                fig.update_yaxes(visible=False)
+            elif image_url:
+                fig = go.Figure()
+                fig.add_layout_image(
+                    source=image_url,
+                    xref="x", yref="y", x=0, y=0,
+                    sizex=image_width, sizey=image_height,
+                    sizing="stretch", layer="below"
+                )
+                fig.update_xaxes(visible=False, range=[0, image_width])
+                fig.update_yaxes(visible=False, range=[image_height, 0], scaleanchor="x", scaleratio=1)
+            else:
+                return empty_figure("No image available")
+                
             fig.update_layout(
                 dragmode="drawclosedpath",
                 newshape=dict(fillcolor="cyan", opacity=0.3,
                               line=dict(color="darkblue", width=8)),
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="Stimulus — Draw AOI regions",
-                title_x=0.5, title_font_size=13, height=520,
+                title_x=0.5, title_font_size=13,
             )
             for aoi_item in aoi_list:
                 if aoi_type_val == 'rect' and isinstance(aoi_item, list) and len(aoi_item) == 4:
@@ -728,9 +756,9 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
 
         # ── Scanpath Animation ──
         elif plot_type == 'scanpath':
-            if not participants or not custom_scanpaths_store:
+            if not participants or (not custom_scanpaths_store and not override_dfs):
                 return empty_figure("Upload scanpath files and select participants")
-            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store)
+            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store, override_dfs=override_dfs)
             if not dfs:
                 return empty_figure("No data for selected participants")
             
@@ -768,14 +796,14 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                                  x=0, y=image_height,
                                  sizex=image_width, sizey=image_height,
                                  sizing="stretch", opacity=1, layer="below")
-            fig.update_xaxes(visible=False)
-            fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1)
+            fig.update_xaxes(visible=False, constrain="domain")
+            fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1, constrain="domain")
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=0, r=0, t=35, b=10),
                 title=f"Scanpath Animation",
                 title_x=0.5, title_font_size=13,
-                height=580,
+
             )
             if fig.layout.sliders:
                 fig.layout.sliders[0].pad = {"t": 20, "r": 10, "b": 10}
@@ -785,9 +813,11 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
 
         # ── Scanpath Overlay ──
         elif plot_type == 'scanpath_overlay':
-            if not participants or not custom_scanpaths_store:
+            if img_array is None:
+                return empty_figure("Scanpath overlay requires an uploaded image.")
+            if not participants or (not custom_scanpaths_store and not override_dfs):
                 return empty_figure("Upload scanpath files and select a participant")
-            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, [participants[0]], custom_image_store)
+            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, [participants[0]], custom_image_store, override_dfs=override_dfs)
             if not dfs:
                 return empty_figure("No data for selected participant")
             df = sc.assign_aoi(dfs[0], aoi_list, aoi_type_val)
@@ -814,24 +844,26 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 marker=dict(size=marker_sizes, color="red", opacity=0.6,
                             line=dict(color="black", width=2)),
                 showlegend=False))
-            fig.update_xaxes(visible=False, range=[0, image_width])
+            fig.update_xaxes(visible=False, range=[0, image_width], constrain="domain")
             fig.update_yaxes(visible=False, range=[image_height, 0],
-                             scaleanchor="x", scaleratio=1)
+                             scaleanchor="x", scaleratio=1, constrain="domain")
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=0, r=0, t=35, b=0),
                 title=f"Scanpath Overlay — {participants[0]}",
                 title_x=0.5, title_font_size=13,
-                height=580,
+
             )
             return fig
 
         # ── Attention Map ──
         elif plot_type == 'attention':
-            if not custom_scanpaths_store:
+            if img_array is None:
+                return empty_figure("Attention map requires an uploaded image.")
+            if not custom_scanpaths_store and not override_dfs:
                 return empty_figure("Upload scanpath files for attention map")
-            store = json.loads(custom_scanpaths_store)
-            all_dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, list(store.keys()), custom_image_store)
+            parts_to_use = list(override_dfs.keys()) if override_dfs else list(json.loads(custom_scanpaths_store).keys())
+            all_dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, parts_to_use, custom_image_store, override_dfs=override_dfs)
             if not all_dfs:
                 return empty_figure("No data available for attention map")
             attention_img = sc.compute_custom_attention_map(img_array, all_dfs)
@@ -842,15 +874,15 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="Attention Map (Custom)", title_x=0.5,
-                title_font_size=13, height=580,
+                title_font_size=13,
             )
             return fig
 
         # ── Scarf Plot ──
         elif plot_type == 'scarf':
-            if not participants or not custom_scanpaths_store:
+            if not participants or (not custom_scanpaths_store and not override_dfs):
                 return empty_figure("Select participants for scarf plot")
-            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store)
+            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store, override_dfs=override_dfs)
             if not dfs:
                 return empty_figure("No data for selected participants")
             combined = pd.concat(dfs, ignore_index=True)
@@ -864,15 +896,15 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
             fig.update_layout(
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="Scarf Plot", title_x=0.5, title_font_size=13,
-                height=520,
+
             )
             return fig
 
         # ── AOI Timeline ──
         elif plot_type == 'aoi_timeline':
-            if not participants or not custom_scanpaths_store:
+            if not participants or (not custom_scanpaths_store and not override_dfs):
                 return empty_figure("Select participants for AOI timeline")
-            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store)
+            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store, override_dfs=override_dfs)
             if not dfs:
                 return empty_figure("No data for selected participants")
             combined = pd.concat(dfs, ignore_index=True)
@@ -882,15 +914,15 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
             fig.update_layout(
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="AOI Timeline", title_x=0.5, title_font_size=13,
-                height=520,
+
             )
             return fig
 
         # ── 3D Scanpath ──
         elif plot_type == '3d_scanpath':
-            if not participants or not custom_scanpaths_store:
+            if not participants or (not override_dfs and not custom_scanpaths_store):
                 return empty_figure("Select participants for 3D scanpath")
-            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store)
+            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store, override_dfs=override_dfs)
             if not dfs:
                 return empty_figure("No data for selected participants")
             combined = pd.concat(dfs, ignore_index=True)
@@ -910,15 +942,15 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 scene_camera=camera,
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="3D Scanpath", title_x=0.5, title_font_size=13,
-                height=560,
+
             )
             return fig
 
         # ── 3D Scatter ──
         elif plot_type == '3d_scatter':
-            if not participants or not custom_scanpaths_store:
+            if not participants or (not override_dfs and not custom_scanpaths_store):
                 return empty_figure("Select participants for 3D scatter")
-            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store)
+            dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store, override_dfs=override_dfs)
             if not dfs:
                 return empty_figure("No data for selected participants")
             combined = pd.concat(dfs, ignore_index=True)
@@ -939,7 +971,7 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 scene_camera=camera,
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="3D Scatter", title_x=0.5, title_font_size=13,
-                height=560,
+
             )
             return fig
 
@@ -969,17 +1001,20 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                     fig = sem_seg.build_segmentation_figure(img_array, segments)
                 except Exception:
                     fig = empty_figure("No objects detected / segmentation unavailable")
-            fig.update_layout(margin=dict(l=0, r=0, t=40, b=0), height=520)
+            fig.update_layout(margin=dict(l=0, r=0, t=40, b=0))
             return fig
 
         # ── Transition Matrix ──
         elif plot_type == 'transition':
             if not aoi_list:
                 return empty_figure("Draw AOI regions on the stimulus first")
-            if not custom_scanpaths_store:
+            if not override_dfs and not custom_scanpaths_store:
                 return empty_figure("Upload scanpath files first")
-            store = json.loads(custom_scanpaths_store)
-            all_dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, list(store.keys()), custom_image_store)
+            if override_dfs:
+                all_dfs = [df for p, df in override_dfs.items() if str(p) in [str(x) for x in participants]]
+            else:
+                store = json.loads(custom_scanpaths_store)
+                all_dfs = _get_custom_scanpath_dfs(custom_scanpaths_store, list(store.keys()), custom_image_store)
             if not all_dfs:
                 return empty_figure("No transitions found")
             df_transition = sc.compute_custom_transition_matrix(
@@ -996,7 +1031,7 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 yaxis=dict(tickmode='linear', tick0=0, dtick=1),
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="AOI Transition Matrix", title_x=0.5,
-                title_font_size=13, height=520,
+                title_font_size=13,
             )
             return fig
 
@@ -1146,6 +1181,32 @@ app.layout = html.Div([
 
                 # Custom controls (hidden by default)
                 upload_panel.make_custom_controls(),
+                
+                # K-Dataset controls (hidden by default)
+                html.Div([
+                    html.Div([
+                        html.Label('Video', className='control-label'),
+                        dcc.Dropdown(
+                            id='k-video-dropdown',
+                            options=[{'label': str(p), 'value': str(p)} for p in k_dataset.K_PARTICIPANTS],
+                            value=str(k_dataset.K_PARTICIPANTS[0]) if k_dataset.K_PARTICIPANTS else None,
+                            placeholder='Select a video...',
+                            clearable=False,
+                            style={'fontSize': '13px'}
+                        ),
+                    ], style={'flex': '1', 'minWidth': '160px'}),
+                    html.Div([
+                        html.Label('Key Frames', className='control-label'),
+                        dcc.Dropdown(
+                            id='k-keyframe-dropdown',
+                            placeholder='Select a key frame...',
+                            clearable=True,
+                            style={'fontSize': '13px'}
+                        ),
+                    ], style={'flex': '1', 'minWidth': '160px'}),
+                    dcc.Store(id='k-keyframes-store'),
+                    dcc.Store(id='k-image-store')
+                ], id='k-controls-container', style={'display': 'none', 'flex': '1', 'minWidth': '320px', 'gap': '10px'}),
 
                 # Key Frames dropdown (shown only when video is uploaded in custom mode)
                 html.Div([
@@ -1188,7 +1249,8 @@ app.layout = html.Div([
 
             # ── Split Panels ──
             html.Div([
-
+                
+                # (K-Dataset video panel removed)
                 # ──── LEFT PANEL ────
                 html.Div([
                     # Panel header
@@ -1214,10 +1276,12 @@ app.layout = html.Div([
                             dcc.Graph(id='left-graph',
                                       figure=empty_figure("Select a stimulus to begin"),
                                       config=GRAPH_CONFIG,
-                                      style={'height': '100%'}),
+                                      responsive=True,
+                                      style={'height': '100%', 'width': '100%'}),
                             type="cube", color="#3f51b5",
+                            parent_style={'flex': '1', 'display': 'flex', 'flexDirection': 'column'}
                         ),
-                        style={'flex': '1', 'overflow': 'auto', 'padding': '4px'},
+                        style={'flex': '1', 'overflow': 'auto', 'padding': '4px', 'display': 'flex', 'flexDirection': 'column'},
                     ),
                     html.Div(
                         [
@@ -1227,9 +1291,31 @@ app.layout = html.Div([
                         id='left-anim-participants-container',
                         style={'display': 'none'}
                     ),
-                ], className='panel-card', style={
-                    'flex': '1', 'margin': '10px 5px 10px 10px',
+                ], id='left-panel', className='panel-card', style={
+                    'flex': 'var(--left-panel-flex, 1)', 'margin': '10px 0px 10px 10px',
                 }),
+
+                # ──── DRAG DIVIDER ────
+                html.Div(id='drag-divider', style={
+                    'width': '6px',
+                    'cursor': 'col-resize',
+                    'backgroundColor': '#e8e8e8',
+                    'margin': '10px 5px',
+                    'borderRadius': '3px',
+                    'flexShrink': '0',
+                    'zIndex': '10',
+                    'transition': 'background-color 0.2s',
+                    'display': 'flex',
+                    'alignItems': 'center',
+                    'justifyContent': 'center',
+                }, children=[
+                    html.Div(style={
+                        'width': '2px',
+                        'height': '30px',
+                        'backgroundColor': '#ccc',
+                        'borderRadius': '1px'
+                    })
+                ]),
 
                 # ──── RIGHT PANEL ────
                 html.Div([
@@ -1256,10 +1342,12 @@ app.layout = html.Div([
                             dcc.Graph(id='right-graph',
                                       figure=empty_figure("Select a stimulus to begin"),
                                       config=GRAPH_CONFIG,
-                                      style={'height': '100%'}),
+                                      responsive=True,
+                                      style={'height': '100%', 'width': '100%'}),
                             type="cube", color="#e53935",
+                            parent_style={'flex': '1', 'display': 'flex', 'flexDirection': 'column'}
                         ),
-                        style={'flex': '1', 'overflow': 'auto', 'padding': '4px'},
+                        style={'flex': '1', 'overflow': 'auto', 'padding': '4px', 'display': 'flex', 'flexDirection': 'column'},
                     ),
                     html.Div(
                         [
@@ -1269,11 +1357,11 @@ app.layout = html.Div([
                         id='right-anim-participants-container',
                         style={'display': 'none'}
                     ),
-                ], className='panel-card', style={
-                    'flex': '1', 'margin': '10px 10px 10px 5px',
+                ], id='right-panel', className='panel-card', style={
+                    'flex': 'var(--right-panel-flex, 1)', 'margin': '10px 10px 10px 0px',
                 }),
 
-            ], style={
+            ], id='split-container', style={
                 'display': 'flex',
                 'flex': '1',
                 'overflow': 'hidden',
@@ -1316,10 +1404,11 @@ def update_image_dd(value, mode):
 
 # ── 2. Image → Participants dropdown options (both panels) ──
 @app.callback(
-    Output('ddParticipants-left', 'options'),
-    Output('ddParticipants-right', 'options'),
+    Output('ddParticipants-left', 'options', allow_duplicate=True),
+    Output('ddParticipants-right', 'options', allow_duplicate=True),
     [Input('image-dropdown', 'value'), Input('ddDB', 'value')],
     State('data-source-mode', 'data'),
+    prevent_initial_call=True
 )
 def update_participants_options(stimulus, db, mode):
     if mode == 'custom':
@@ -1488,6 +1577,117 @@ def update_image_from_keyframe(selected_idx, keyframes_json):
         'keyframe_time_end': t_end,
     }
 
+# ── 5d. K-Dataset Video selection → populate keyframes store and filter participants ──
+@app.callback(
+    Output('k-keyframes-store', 'data'),
+    Output('ddParticipants-left', 'options', allow_duplicate=True),
+    Output('ddParticipants-left', 'value', allow_duplicate=True),
+    Output('ddParticipants-right', 'options', allow_duplicate=True),
+    Output('ddParticipants-right', 'value', allow_duplicate=True),
+    Input('k-video-dropdown', 'value'),
+    Input('data-source-mode', 'data'),
+    prevent_initial_call=True
+)
+def handle_k_video_selection(pid, mode):
+    if mode != 'k_dataset' or not pid:
+        raise dash.exceptions.PreventUpdate
+
+    import k_dataset
+    import os
+    import json
+    
+    participant_options = [{'label': str(pid), 'value': str(pid)}]
+    participant_values = [str(pid)]
+    
+    kf_path = os.path.join(k_dataset.K_DATA_ROOT, str(pid), f"{pid}_keyframes.json")
+    if os.path.exists(kf_path):
+        with open(kf_path, 'r') as f:
+            key_frames = json.load(f)
+        # Only store metadata to avoid sending huge payload (22MB+) to the browser
+        metadata = [{'timestamp_sec': k['timestamp_sec'], 'width': k.get('width', 1920), 'height': k.get('height', 1080)} for k in key_frames]
+        keyframes_data = json.dumps(metadata)
+    else:
+        keyframes_data = "[]"
+        
+    return keyframes_data, participant_options, participant_values, participant_options, participant_values
+
+# ── 5e. K-Dataset Keyframes dropdown: populate options ──
+@app.callback(
+    Output('k-keyframe-dropdown', 'options'),
+    Output('k-keyframe-dropdown', 'value'),
+    Input('k-keyframes-store', 'data'),
+    State('data-source-mode', 'data'),
+    prevent_initial_call=True
+)
+def populate_k_keyframe_dropdown(keyframes_json, mode):
+    if mode != 'k_dataset' or not keyframes_json:
+        return [], None
+    try:
+        import json
+        key_frames = json.loads(keyframes_json)
+    except Exception:
+        return [], None
+    if not key_frames:
+        return [], None
+    options = []
+    for i, kf in enumerate(key_frames):
+        ts = kf['timestamp_sec']
+        label = f"Frame {i+1} — {ts:.1f}s"
+        options.append({'label': label, 'value': i})
+    return options, 0
+
+# ── 5f. K-Dataset Key Frame selection → update k-image-store ──
+@app.callback(
+    Output('k-image-store', 'data', allow_duplicate=True),
+    Input('k-keyframe-dropdown', 'value'),
+    State('k-keyframes-store', 'data'),
+    State('k-video-dropdown', 'value'),
+    prevent_initial_call=True
+)
+def update_k_image_from_keyframe(selected_idx, keyframes_json, pid):
+    if selected_idx is None or not keyframes_json or not pid:
+        raise dash.exceptions.PreventUpdate
+    try:
+        import json
+        import os
+        import k_dataset
+        
+        # We need the base64 image, so we must load the original JSON from disk again
+        kf_path = os.path.join(k_dataset.K_DATA_ROOT, str(pid), f"{pid}_keyframes.json")
+        with open(kf_path, 'r') as f:
+            full_key_frames = json.load(f)
+            
+        kf_full = full_key_frames[selected_idx]
+        
+        # Load metadata to find time bounds
+        key_frames = json.loads(keyframes_json)
+        kf_meta = key_frames[selected_idx]
+        if selected_idx > 0:
+            t_start = key_frames[selected_idx - 1]['timestamp_sec']
+            t_end = kf_meta['timestamp_sec']
+        else:
+            t_start = 0.0
+            if kf_meta['timestamp_sec'] > 0.0:
+                t_end = kf_meta['timestamp_sec']
+            elif len(key_frames) > 1:
+                t_end = key_frames[1]['timestamp_sec']
+            else:
+                t_end = None
+    except (json.JSONDecodeError, IndexError, TypeError, FileNotFoundError, Exception) as e:
+        raise dash.exceptions.PreventUpdate
+
+    return {
+        'b64': kf_full['image_b64'],
+        'width': kf_meta.get('width', 1920),
+        'height': kf_meta.get('height', 1080),
+        'filename': f"Key Frame {selected_idx + 1} — {kf_meta['timestamp_sec']:.1f}s",
+        'content_type': 'data:image/jpeg;base64',
+        'is_video_frame': True,
+        'keyframe_time_start': t_start,
+        'keyframe_time_end': t_end,
+    }
+
+
 
 # ── 6. Update LEFT panel graph ──
 @app.callback(
@@ -1498,19 +1698,64 @@ def update_image_from_keyframe(selected_idx, keyframes_json):
      Input('ddParticipants-left', 'value'),
      Input('aoi-store', 'data'),
      Input('left-anim-participants', 'value'),
-     Input('custom-image-store', 'data')],
+     Input('custom-image-store', 'data'),
+     Input('k-image-store', 'data')],
     [State('data-source-mode', 'data'),
      State('custom-scanpaths-store', 'data')],
     prevent_initial_call=True
 )
 def update_left_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
-                      anim_participants, custom_image, mode, custom_scanpaths):
-    # For scanpath animation, use the checklist's selected participants
-    active_participants = anim_participants if plot_type == 'scanpath' and anim_participants else participants
-    if mode == 'custom':
-        return generate_figure_custom(plot_type, custom_image, custom_scanpaths,
-                                      active_participants, AOI, AOI_type)
-    return generate_figure(plot_type, db_name, stimulus, active_participants, AOI, AOI_type)
+                      anim_participants, custom_image, k_image, mode, custom_scanpaths):
+    try:
+        import k_dataset
+        import json
+        # For scanpath animation, use the checklist's selected participants
+        active_participants = anim_participants if plot_type == 'scanpath' and anim_participants else (participants or [])
+
+        if plot_type.startswith('k_'):
+            import k_visualizations
+            
+            if mode == 'custom':
+                if not custom_image:
+                    return empty_figure("Upload a stimulus image to begin")
+                _, img_w, img_h, img_url = _decode_custom_image(custom_image)
+                custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, active_participants, custom_image)
+                if not custom_dfs_list:
+                    return empty_figure("No data for selected participants")
+                custom_dfs = {str(p): df for p, df in zip(active_participants, custom_dfs_list)}
+            elif mode == 'k_dataset':
+                if k_image:
+                    _, img_w, img_h, img_url = _decode_custom_image(k_image)
+                else:
+                    img_url = k_dataset.K_STIMULUS_URL
+                    img_w = k_dataset.STIMULUS_WIDTH
+                    img_h = k_dataset.STIMULUS_HEIGHT
+                custom_dfs = k_dataset.K_DFS
+            else:
+                custom_dfs = None
+                img_url = None
+                img_w = None
+                img_h = None
+                
+            if plot_type == 'k_scanpath':
+                return k_visualizations.make_k_colored_scanpath(active_participants, AOI, AOI_type, custom_dfs=custom_dfs, custom_img_url=img_url, custom_w=img_w, custom_h=img_h)
+            elif plot_type == 'k_timeline':
+                return k_visualizations.make_k_timeline_figure(active_participants, AOI, AOI_type, custom_dfs=custom_dfs)
+            elif plot_type == 'k_heatmap':
+                return k_visualizations.make_k_heatmap_figure(active_participants, k_mode='focal', custom_dfs=custom_dfs, custom_img_url=img_url, custom_w=img_w, custom_h=img_h)
+
+        if mode == 'k_dataset':
+            img_to_use = k_image if k_image else {'url': k_dataset.K_STIMULUS_URL, 'width': k_dataset.STIMULUS_WIDTH, 'height': k_dataset.STIMULUS_HEIGHT}
+            return generate_figure_custom(plot_type, img_to_use, json.dumps({p: 'k' for p in active_participants}), active_participants, AOI, AOI_type, override_dfs=k_dataset.K_DFS)
+            
+        if mode == 'custom':
+            return generate_figure_custom(plot_type, custom_image, custom_scanpaths,
+                                          active_participants, AOI, AOI_type)
+        return generate_figure(plot_type, db_name, stimulus, active_participants, AOI, AOI_type)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return empty_figure(f"Left Graph Error: {str(e)}")
 
 
 # ── 7. Update RIGHT panel graph ──
@@ -1522,18 +1767,63 @@ def update_left_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
      Input('ddParticipants-right', 'value'),
      Input('aoi-store', 'data'),
      Input('right-anim-participants', 'value'),
-     Input('custom-image-store', 'data')],
+     Input('custom-image-store', 'data'),
+     Input('k-image-store', 'data')],
     [State('data-source-mode', 'data'),
      State('custom-scanpaths-store', 'data')],
     prevent_initial_call=True
 )
 def update_right_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
-                       anim_participants, custom_image, mode, custom_scanpaths):
-    active_participants = anim_participants if plot_type == 'scanpath' and anim_participants else participants
-    if mode == 'custom':
-        return generate_figure_custom(plot_type, custom_image, custom_scanpaths,
-                                      active_participants, AOI, AOI_type)
-    return generate_figure(plot_type, db_name, stimulus, active_participants, AOI, AOI_type)
+                       anim_participants, custom_image, k_image, mode, custom_scanpaths):
+    try:
+        import k_dataset
+        import json
+        active_participants = anim_participants if plot_type == 'scanpath' and anim_participants else (participants or [])
+
+        if plot_type.startswith('k_'):
+            import k_visualizations
+            
+            if mode == 'custom':
+                if not custom_image:
+                    return empty_figure("Upload a stimulus image to begin")
+                _, img_w, img_h, img_url = _decode_custom_image(custom_image)
+                custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, active_participants, custom_image)
+                if not custom_dfs_list:
+                    return empty_figure("No data for selected participants")
+                custom_dfs = {str(p): df for p, df in zip(active_participants, custom_dfs_list)}
+            elif mode == 'k_dataset':
+                if k_image:
+                    _, img_w, img_h, img_url = _decode_custom_image(k_image)
+                else:
+                    img_url = k_dataset.K_STIMULUS_URL
+                    img_w = k_dataset.STIMULUS_WIDTH
+                    img_h = k_dataset.STIMULUS_HEIGHT
+                custom_dfs = k_dataset.K_DFS
+            else:
+                custom_dfs = None
+                img_url = None
+                img_w = None
+                img_h = None
+
+            if plot_type == 'k_scanpath':
+                return k_visualizations.make_k_colored_scanpath(active_participants, AOI, AOI_type, custom_dfs=custom_dfs, custom_img_url=img_url, custom_w=img_w, custom_h=img_h)
+            elif plot_type == 'k_timeline':
+                return k_visualizations.make_k_timeline_figure(active_participants, AOI, AOI_type, custom_dfs=custom_dfs)
+            elif plot_type == 'k_heatmap':
+                return k_visualizations.make_k_heatmap_figure(active_participants, k_mode='ambient', custom_dfs=custom_dfs, custom_img_url=img_url, custom_w=img_w, custom_h=img_h)
+
+        if mode == 'k_dataset':
+            img_to_use = k_image if k_image else {'url': k_dataset.K_STIMULUS_URL, 'width': k_dataset.STIMULUS_WIDTH, 'height': k_dataset.STIMULUS_HEIGHT}
+            return generate_figure_custom(plot_type, img_to_use, json.dumps({p: 'k' for p in active_participants}), active_participants, AOI, AOI_type, override_dfs=k_dataset.K_DFS)
+        
+        if mode == 'custom':
+            return generate_figure_custom(plot_type, custom_image, custom_scanpaths,
+                                          active_participants, AOI, AOI_type)
+        return generate_figure(plot_type, db_name, stimulus, active_participants, AOI, AOI_type)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return empty_figure(f"Right Graph Error: {str(e)}")
 
 # ── 8. Animation Checklists logic ──
 @app.callback(
@@ -1603,6 +1893,32 @@ def update_right_anim_checklist(panel_participants, current_checked):
 # RUN
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@app.callback(
+    Output('k-video-player', 'src'),
+    Input('ddParticipants-left', 'value'),
+    State('data-source-mode', 'data')
+)
+def update_k_video_src(participants, mode):
+    if mode != 'k_dataset' or not participants:
+        return ''
+    import k_dataset
+    pid = participants[0] if isinstance(participants, list) else participants
+    path = k_dataset.get_k_video_path(pid)
+    if path:
+        return f'/k_video/{pid}'
+    return ''
+
 if __name__ == '__main__':
+    from flask import send_file
+    import k_dataset
+    import os
+    
+    @app.server.route('/k_video/<pid>')
+    def serve_k_video(pid):
+        video_path = k_dataset.get_k_video_path(pid)
+        if video_path and os.path.exists(video_path):
+            return send_file(os.path.abspath(video_path))
+        return "Not found", 404
+
     upload_panel.register_callbacks(app)
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=8050)

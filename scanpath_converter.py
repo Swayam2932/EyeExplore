@@ -53,40 +53,45 @@ def sniff_delimiter(raw_text: str) -> str:
 
 
 def parse_raw_table(raw_text: str, delimiter: str) -> pd.DataFrame:
-    lines = raw_text.strip().splitlines()
-    good_rows = []
-    bad_rows = []
-
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            if delimiter:
-                parts = line.split(delimiter)
-            else:
-                parts = line.split()  # whitespace splitting
-            values = [float(v.strip()) for v in parts if v.strip()]
-            good_rows.append(values)
-        except (ValueError, TypeError):
-            bad_rows.append((i + 1, line))
-
-    if not good_rows:
-        raise ValueError("No valid numeric rows found in file")
-
-    # Verify consistent column count
-    col_count = len(good_rows[0])
-    filtered_rows = []
-    for row in good_rows:
-        if len(row) == col_count:
-            filtered_rows.append(row)
+    import io
+    try:
+        # Use pandas to read the raw text. Let pandas infer the header if possible.
+        if delimiter:
+            df = pd.read_csv(io.StringIO(raw_text), sep=delimiter, header=None, on_bad_lines='skip')
         else:
-            bad_rows.append((-1, str(row)))  # inconsistent column count
+            df = pd.read_csv(io.StringIO(raw_text), sep=r'\s+', header=None, on_bad_lines='skip')
+    except Exception as e:
+        raise ValueError(f"Failed to parse file: {e}")
+        
+    if df.empty:
+        raise ValueError("No valid rows found in file")
 
-    if not filtered_rows:
-        raise ValueError("No rows with consistent column count")
-
-    df = pd.DataFrame(filtered_rows, columns=[f'Col_{j+1}' for j in range(col_count)])
+    bad_rows = []
+    
+    # Check if the first row is a header
+    first_row = df.iloc[0]
+    is_header = False
+    
+    for val in first_row:
+        val_str = str(val).strip('"\'')
+        if not val_str.replace('.', '', 1).replace('-', '', 1).isdigit():
+            is_header = True
+            break
+            
+    if is_header:
+        columns = [str(val).strip('"\'') for val in first_row]
+        df.columns = columns
+        df = df.iloc[1:].reset_index(drop=True)
+    else:
+        df.columns = [f'Col_{j+1}' for j in range(len(df.columns))]
+        
+    # Attempt to convert to numeric where possible
+    for col in df.columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except (ValueError, TypeError):
+            pass
+        
     return df, bad_rows
 
 
@@ -105,6 +110,12 @@ def reorder_columns(df: pd.DataFrame, column_mapping: dict) -> pd.DataFrame:
             # Multiple columns mapped to IGNORE
             continue
         result[meaning] = df.iloc[:, col_idx]
+
+    # Also keep K columns if they are present in the dataframe
+    if 'K_i' in df.columns:
+        result['K_i'] = df['K_i']
+    if 'K_squashed' in df.columns:
+        result['K_squashed'] = df['K_squashed']
 
     return result
 
@@ -195,8 +206,26 @@ def standardize_scanpath(raw_text: str, column_mapping: dict, format_type: str,
 
     df['SUBJECT'] = subject_name
 
-    # Ensure correct column order
-    df = df[['SUBJECT', 'X', 'Y', 'TIME_FROM', 'TIME_TO']]
+    # Check for SACCADE_AMPLITUDE and calculate K metrics
+    if 'SACCADE_AMPLITUDE' in df.columns:
+        duration = df['TIME_TO'] - df['TIME_FROM']
+        std_dur = duration.std(ddof=0)
+        std_amp = df['SACCADE_AMPLITUDE'].std(ddof=0)
+        
+        if std_dur > 0 and std_amp > 0:
+            z_dur = (duration - duration.mean()) / std_dur
+            z_amp = (df['SACCADE_AMPLITUDE'] - df['SACCADE_AMPLITUDE'].mean()) / std_amp
+            df['K_i'] = z_dur - z_amp
+            df['K_squashed'] = 2 / (1 + np.exp(-df['K_i'])) - 1
+
+    # Ensure correct column order, keeping K-metrics if they exist
+    cols = ['SUBJECT', 'X', 'Y', 'TIME_FROM', 'TIME_TO']
+    if 'K_i' in df.columns:
+        cols.append('K_i')
+    if 'K_squashed' in df.columns:
+        cols.append('K_squashed')
+        
+    df = df[cols]
 
     return {
         'df': df,
@@ -387,36 +416,36 @@ def extract_key_frames(video_bytes: bytes) -> list:
 
         # Pass 1: Collect histograms and downsampled grayscale frames
         frame_data = []  # (frame_index, histogram, gray_small, frame_bgr)
-        idx = 0
+        
+        # Sequentially read frames to avoid slow seeking on compressed video formats
+        frame_idx = 0
+        last_frame = None
         while True:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
             ret, frame = cap.read()
             if not ret:
                 break
-
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            
+            last_frame = (frame_idx, frame.copy())
+            
+            if frame_idx % sample_step == 0:
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                hist = cv2.calcHist([hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
+                cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                gray_small = cv2.resize(gray, (160, 120))
+                frame_data.append((frame_idx, hist, gray_small, frame.copy()))
+                
+            frame_idx += 1
+            
+        # Ensure we always include the last frame
+        if last_frame is not None and (not frame_data or frame_data[-1][0] != last_frame[0]):
+            l_idx, l_frame = last_frame
+            hsv = cv2.cvtColor(l_frame, cv2.COLOR_BGR2HSV)
             hist = cv2.calcHist([hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
             cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
-
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = cv2.cvtColor(l_frame, cv2.COLOR_BGR2GRAY)
             gray_small = cv2.resize(gray, (160, 120))
-
-            frame_data.append((idx, hist, gray_small, frame.copy()))
-            idx += sample_step
-            if idx >= total_frames:
-                # Make sure we include the very last frame
-                if frame_data[-1][0] != total_frames - 1:
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, total_frames - 1)
-                    ret, frame = cap.read()
-                    if ret:
-                        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                        hist = cv2.calcHist([hsv], [0, 1], None, [50, 60],
-                                            [0, 180, 0, 256])
-                        cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
-                        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                        gray_small = cv2.resize(gray, (160, 120))
-                        frame_data.append((total_frames - 1, hist, gray_small, frame.copy()))
-                break
+            frame_data.append((l_idx, hist, gray_small, l_frame))
 
         cap.release()
 
