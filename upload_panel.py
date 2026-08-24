@@ -894,6 +894,22 @@ def register_callbacks(app):
             return {'display': 'none'}
         return no_update
 
+    # ── Store custom video URL for video player ──
+    @app.callback(
+        Output('custom-video-store', 'data'),
+        Input('custom-image-upload', 'contents'),
+        State('custom-image-upload', 'filename'),
+        prevent_initial_call=True
+    )
+    def store_custom_video(contents, filename):
+        if not contents or not filename:
+            return no_update
+        _, ext = os.path.splitext(filename.lower())
+        if ext in ALLOWED_VIDEO_EXTENSIONS:
+            # Return the full data URL so the video player can use it as src
+            return contents
+        return no_update
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPERS

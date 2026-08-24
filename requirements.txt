@@ -47,10 +47,3 @@ typing-extensions==4.15.0
 urllib3==2.7.0
 Werkzeug==3.1.8
 zipp==4.1.0
-
-# Model download instructions
-# Download these files and place them in the "models" folder next to app.py:
-# 1) ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt
-#    https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt
-# 2) frozen_inference_graph.pb
-#    https://github.com/opencv/opencv_extra/raw/master/testdata/dnn/ssd_mobilenet_v3_large_coco_2020_01_14.pb

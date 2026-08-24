@@ -54,7 +54,7 @@ PLOT_TYPES = [
     {'value': 'coassociation', 'label': 'Co-association Matrix', 'icon': 'bi-grid-3x3-gap-fill'},
     {'value': 'detection',     'label': 'Object Detection',      'icon': 'bi-bounding-box'},
     {'value': 'transition',    'label': 'Transition Matrix',     'icon': 'bi-arrow-left-right'},
-    {'value': 'k_scanpath',    'label': 'K-Colored Scanpath',    'icon': 'bi-palette-fill'},
+    {'value': 'k_video',       'label': 'Synced Video + K-Timeline', 'icon': 'bi-play-circle-fill'},
     {'value': 'k_timeline',    'label': 'K-Coefficient Timeline','icon': 'bi-activity'},
     {'value': 'k_heatmap',     'label': 'Focal/Ambient Heatmap', 'icon': 'bi-thermometer-half'},
 ]
@@ -1205,7 +1205,9 @@ app.layout = html.Div([
                         ),
                     ], style={'flex': '1', 'minWidth': '160px'}),
                     dcc.Store(id='k-keyframes-store'),
-                    dcc.Store(id='k-image-store')
+                    dcc.Store(id='k-image-store'),
+                    html.Div(id='k-fixation-data', style={'display': 'none'}),
+                    dcc.Store(id='custom-video-store')
                 ], id='k-controls-container', style={'display': 'none', 'flex': '1', 'minWidth': '320px', 'gap': '10px'}),
 
                 # Key Frames dropdown (shown only when video is uploaded in custom mode)
@@ -1270,6 +1272,39 @@ app.layout = html.Div([
                         dcc.Dropdown(id='ddParticipants-left', multi=True, style={'fontSize': '12px', 'flex': '1'}),
                     ], style={'display': 'flex', 'alignItems': 'center', 'padding': '4px 10px', 'gap': '6px', 'borderBottom': '1px solid #e8e8e8', 'background': '#f8f9ff'}),
 
+                    # Video player container (hidden by default, shown for k_video)
+                    html.Div([
+                        html.Video(
+                            id='k-video-player',
+                            controls=True,
+                            style={'width': '100%', 'height': '100%', 'objectFit': 'contain',
+                                   'backgroundColor': '#000', 'borderRadius': '6px'},
+                        ),
+                        # Fixation dot overlay
+                        html.Div(id='k-fixation-dot', style={
+                            'position': 'absolute',
+                            'width': '16px', 'height': '16px',
+                            'borderRadius': '50%',
+                            'backgroundColor': 'rgba(59, 130, 246, 0.9)',
+                            'border': '2px solid white',
+                            'boxShadow': '0 0 8px rgba(0,0,0,0.5)',
+                            'pointerEvents': 'none',
+                            'transform': 'translate(-50%, -50%)',
+                            'display': 'none',
+                            'zIndex': '10',
+                            'transition': 'left 0.08s linear, top 0.08s linear',
+                        }),
+                        # Trail dots container
+                        html.Div(id='k-fixation-trail', style={
+                            'position': 'absolute', 'top': '0', 'left': '0',
+                            'width': '100%', 'height': '100%',
+                            'pointerEvents': 'none', 'zIndex': '9',
+                        }),
+                    ], id='k-video-container', style={
+                        'display': 'none', 'flex': '1', 'position': 'relative',
+                        'overflow': 'hidden', 'margin': '4px',
+                    }),
+
                     # Graph area
                     html.Div(
                         dcc.Loading(
@@ -1281,6 +1316,7 @@ app.layout = html.Div([
                             type="cube", color="#3f51b5",
                             parent_style={'flex': '1', 'display': 'flex', 'flexDirection': 'column'}
                         ),
+                        id='left-graph-container',
                         style={'flex': '1', 'overflow': 'auto', 'padding': '4px', 'display': 'flex', 'flexDirection': 'column'},
                     ),
                     html.Div(
@@ -1737,8 +1773,8 @@ def update_left_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
                 img_w = None
                 img_h = None
                 
-            if plot_type == 'k_scanpath':
-                return k_visualizations.make_k_colored_scanpath(active_participants, AOI, AOI_type, custom_dfs=custom_dfs, custom_img_url=img_url, custom_w=img_w, custom_h=img_h)
+            if plot_type == 'k_video':
+                return empty_figure("Video playing in panel above")
             elif plot_type == 'k_timeline':
                 return k_visualizations.make_k_timeline_figure(active_participants, AOI, AOI_type, custom_dfs=custom_dfs)
             elif plot_type == 'k_heatmap':
@@ -1805,8 +1841,8 @@ def update_right_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
                 img_w = None
                 img_h = None
 
-            if plot_type == 'k_scanpath':
-                return k_visualizations.make_k_colored_scanpath(active_participants, AOI, AOI_type, custom_dfs=custom_dfs, custom_img_url=img_url, custom_w=img_w, custom_h=img_h)
+            if plot_type == 'k_video':
+                return empty_figure("Video playing in panel above")
             elif plot_type == 'k_timeline':
                 return k_visualizations.make_k_timeline_figure(active_participants, AOI, AOI_type, custom_dfs=custom_dfs)
             elif plot_type == 'k_heatmap':
@@ -1889,24 +1925,118 @@ def update_right_anim_checklist(panel_participants, current_checked):
     return options, current_checked
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# RUN
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── 9. Toggle video container vs graph container ──
+@app.callback(
+    Output('right-plot-type', 'value', allow_duplicate=True),
+    Input('left-plot-type', 'value'),
+    prevent_initial_call=True
+)
+def sync_right_timeline_with_video(left_val):
+    if left_val == 'k_video':
+        return 'k_timeline'
+    raise dash.exceptions.PreventUpdate
 
 @app.callback(
-    Output('k-video-player', 'src'),
-    Input('ddParticipants-left', 'value'),
-    State('data-source-mode', 'data')
+    Output('k-video-container', 'style'),
+    Output('left-graph-container', 'style'),
+    Input('left-plot-type', 'value'),
+    prevent_initial_call=True
 )
-def update_k_video_src(participants, mode):
-    if mode != 'k_dataset' or not participants:
-        return ''
-    import k_dataset
-    pid = participants[0] if isinstance(participants, list) else participants
-    path = k_dataset.get_k_video_path(pid)
-    if path:
-        return f'/k_video/{pid}'
+def toggle_video_vs_graph(plot_type):
+    graph_style = {'flex': '1', 'overflow': 'auto', 'padding': '4px', 'display': 'flex', 'flexDirection': 'column'}
+    video_style = {'display': 'none', 'flex': '1', 'position': 'relative', 'overflow': 'hidden', 'margin': '4px'}
+    if plot_type == 'k_video':
+        video_style['display'] = 'flex'
+        graph_style['display'] = 'none'
+    return video_style, graph_style
+
+# ── 10. Update video source based on selected participant ──
+@app.callback(
+    Output('k-video-player', 'src'),
+    Input('k-video-dropdown', 'value'),
+    Input('ddParticipants-left', 'value'),
+    State('data-source-mode', 'data'),
+    State('custom-video-store', 'data'),
+    prevent_initial_call=False
+)
+def update_k_video_src(k_vid_pid, participants, mode, custom_video):
+    if mode == 'custom' and custom_video:
+        return custom_video
+    if mode == 'k_dataset':
+        # Use selected video dropdown participant
+        pid = k_vid_pid
+        if not pid and participants:
+            pid = participants[0] if isinstance(participants, list) else participants
+        if pid:
+            import k_dataset
+            path = k_dataset.get_k_video_path(pid)
+            if path:
+                return f'/k_video/{pid}'
     return ''
+
+# ── 11. Populate fixation data store for JS sync ──
+@app.callback(
+    Output('k-fixation-data', 'children'),
+    Input('ddParticipants-left', 'value'),
+    Input('left-plot-type', 'value'),
+    State('data-source-mode', 'data'),
+    State('custom-scanpaths-store', 'data'),
+    State('custom-image-store', 'data'),
+    prevent_initial_call=False
+)
+def populate_fixation_data(participants, plot_type, mode, custom_scanpaths, custom_image):
+    import json as _json
+    if plot_type != 'k_video' or not participants:
+        return None
+    
+    try:
+        import k_dataset
+        
+        if mode == 'k_dataset':
+            source_dfs = k_dataset.K_DFS
+        elif mode == 'custom' and custom_scanpaths:
+            # Build custom dfs
+            custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, participants, custom_image)
+            source_dfs = {str(p): df for p, df in zip(participants, custom_dfs_list)} if custom_dfs_list else {}
+        else:
+            return None
+        
+        fixation_points = []
+        for p in participants:
+            if str(p) in source_dfs:
+                df = source_dfs[str(p)].copy()
+                if 'K_squashed' not in df.columns:
+                    continue
+                
+                # Replace NaNs with 0 to prevent JSON.parse errors in JS
+                df = df.fillna(0)
+                
+                for _, row in df.iterrows():
+                    k_val = float(row['K_squashed'])
+                    
+                    x_val = float(row['X']) if mode == 'k_dataset' else float(row.get('X', 0))
+                    y_val = float(row['Y']) if mode == 'k_dataset' else float(row.get('Y', 0))
+                    
+                    x_pct = x_val / k_dataset.STIMULUS_WIDTH * 100.0 if mode == 'k_dataset' else x_val
+                    y_pct = y_val / k_dataset.STIMULUS_HEIGHT * 100.0 if mode == 'k_dataset' else y_val
+                    
+                    fixation_points.append({
+                        'time_sec': float(row['TIME_FROM']) / 1000.0,
+                        'time_end_sec': float(row['TIME_TO']) / 1000.0,
+                        'x_pct': x_pct,
+                        'y_pct': y_pct,
+                        'k_squashed': k_val,
+                        'subject': str(p),
+                    })
+        
+        # Sort by time
+
+        fixation_points.sort(key=lambda x: x['time_sec'])
+        return _json.dumps(fixation_points)
+    except Exception as e:
+        print(f"[app] Error populating fixation data: {e}")
+        return None
+
 
 if __name__ == '__main__':
     from flask import send_file

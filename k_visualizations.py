@@ -61,21 +61,41 @@ def make_k_timeline_figure(participants, aoi_list, aoi_type_val, custom_dfs=None
         y='K_squashed_smooth', 
         color='SUBJECT',
         title="K-Coefficient Timeline",
-        labels={'TIME_SEC': 'Time (s)', 'K_squashed_smooth': 'Squashed K Coefficient ([-1, 1])', 'SUBJECT': 'Participant'},
+        labels={'TIME_SEC': 'Time (s)', 'K_squashed_smooth': 'Squashed K Coefficient', 'SUBJECT': 'Participant'},
         markers=False,
         line_shape='spline'
     )
     
+    # Calculate dynamic Y-axis range from actual data
+    y_min = df['K_squashed_smooth'].min()
+    y_max = df['K_squashed_smooth'].max()
+    # Add 15% padding
+    y_padding = max(0.05, (y_max - y_min) * 0.15)
+    y_range_min = min(y_min - y_padding, -0.05)  # Always include 0
+    y_range_max = max(y_max + y_padding, 0.05)   # Always include 0
+    
+    # Get time range for scrubber line
+    t_min = df['TIME_SEC'].min()
+    
+    # Add scrubber line FIRST so it's always shapes[0] for JS sync
+    fig.add_shape(
+        type='line',
+        x0=t_min, x1=t_min,
+        y0=y_range_min, y1=y_range_max,
+        line=dict(color='red', width=2, dash='solid'),
+        name='scrubber'
+    )
+    
     # Add colored zones for Focal (positive) and Ambient (negative)
-    fig.add_hrect(y0=0, y1=1, line_width=0, fillcolor="rgba(144, 238, 144, 0.3)", annotation_text="Focal Inspection Phase (K > 0)", annotation_position="top left")
-    fig.add_hrect(y0=-1, y1=0, line_width=0, fillcolor="rgba(255, 160, 122, 0.3)", annotation_text="Ambient Search Phase (K < 0)", annotation_position="bottom left")
+    fig.add_hrect(y0=0, y1=y_range_max, line_width=0, fillcolor="rgba(144, 238, 144, 0.3)", annotation_text="Focal Inspection Phase (K > 0)", annotation_position="top left")
+    fig.add_hrect(y0=y_range_min, y1=0, line_width=0, fillcolor="rgba(255, 160, 122, 0.3)", annotation_text="Ambient Search Phase (K < 0)", annotation_position="bottom left")
     
     fig.add_hline(y=0, line_dash="dash", line_color="black")
     
     fig.update_layout(
         plot_bgcolor='white',
         paper_bgcolor='white',
-        yaxis_range=[-1.1, 1.1],
+        yaxis_range=[y_range_min, y_range_max],
         margin=dict(l=40, r=40, t=40, b=40),
     )
     # Add grid lines
