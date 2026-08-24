@@ -230,7 +230,7 @@ def make_stimulus_figure(db_name, stimulus, aoi_list, aoi_type_val):
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
     fig.update_layout(
-        dragmode="drawclosedpath",
+        dragmode="drawrect",
         newshape=dict(fillcolor="cyan", opacity=0.3, line=dict(color="darkblue", width=8)),
         margin=dict(l=0, r=0, t=35, b=0),
         title="Stimulus — Draw AOI regions",
@@ -729,7 +729,7 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 return empty_figure("No image available")
                 
             fig.update_layout(
-                dragmode="drawclosedpath",
+                dragmode="drawrect",
                 newshape=dict(fillcolor="cyan", opacity=0.3,
                               line=dict(color="darkblue", width=8)),
                 margin=dict(l=0, r=0, t=35, b=0),
@@ -1123,6 +1123,7 @@ app.layout = html.Div([
     dcc.Store(id='custom-image-store'),
     dcc.Store(id='custom-scanpaths-store'),
     dcc.Store(id='custom-raw-scanpaths-store'),
+    dcc.ConfirmDialog(id='aoi-error-dialog', message=""),
 
     # ──── Top Navbar ────
     html.Div([
@@ -1493,6 +1494,8 @@ def set_right_plot_type(n_clicks_list):
 @app.callback(
     Output('aoi-store', 'data'),
     Output('aoi-count-badge', 'children'),
+    Output('aoi-error-dialog', 'displayed'),
+    Output('aoi-error-dialog', 'message'),
     [Input('left-graph', 'relayoutData'),
      Input('right-graph', 'relayoutData'),
      Input('btn-clear-aoi', 'n_clicks'),
@@ -1508,12 +1511,12 @@ def handle_aoi(left_relayout, right_relayout, clear_clicks, stimulus, aoi_counte
     # Clear all AOIs
     if trigger == 'btn-clear-aoi':
         AOI = []
-        return counter + 1, '0'
+        return counter + 1, '0', False, ''
 
     # Reset AOIs when stimulus changes
     if trigger == 'image-dropdown':
         AOI = []
-        return counter + 1, '0'
+        return counter + 1, '0', False, ''
 
     # Handle shape drawing from either graph
     relayout = None
@@ -1527,18 +1530,50 @@ def handle_aoi(left_relayout, right_relayout, clear_clicks, stimulus, aoi_counte
         # Only process if more shapes than we already have (i.e., a new shape was drawn)
         if len(shapes) > len(AOI):
             last_shape = shapes[-1]
+            
+            def check_overlap(new_box):
+                nx0, ny0, nx1, ny1 = new_box
+                for exist in AOI:
+                    if isinstance(exist, list) and len(exist) == 4:
+                        ex0, ey0, ex1, ey1 = exist
+                        ex0, ex1 = min(ex0, ex1), max(ex0, ex1)
+                        ey0, ey1 = min(ey0, ey1), max(ey0, ey1)
+                        if not (nx1 <= ex0 or nx0 >= ex1 or ny1 <= ey0 or ny0 >= ey1):
+                            return True
+                    else:
+                        pts = np.array(exist)
+                        if len(pts) > 0:
+                            ex0, ex1 = pts[:,0].min(), pts[:,0].max()
+                            ey0, ey1 = pts[:,1].min(), pts[:,1].max()
+                            if not (nx1 <= ex0 or nx0 >= ex1 or ny1 <= ey0 or ny0 >= ey1):
+                                return True
+                return False
+
             if last_shape.get("type") == "rect":
                 x0 = int(last_shape["x0"])
                 y0 = int(last_shape["y0"])
                 x1 = int(last_shape["x1"])
                 y1 = int(last_shape["y1"])
+                
+                nx0, nx1 = min(x0, x1), max(x0, x1)
+                ny0, ny1 = min(y0, y1), max(y0, y1)
+                if check_overlap((nx0, ny0, nx1, ny1)):
+                    return counter + 1, str(len(AOI)), True, "Error: Overlapping AOIs are not allowed."
+                
                 AOI.append([x0, y0, x1, y1])
                 AOI_type = "rect"
             elif "path" in last_shape:
                 indices = path_to_indices(last_shape["path"])
+                pts = np.array(indices)
+                if len(pts) > 0:
+                    nx0, nx1 = pts[:,0].min(), pts[:,0].max()
+                    ny0, ny1 = pts[:,1].min(), pts[:,1].max()
+                    if check_overlap((nx0, ny0, nx1, ny1)):
+                        return counter + 1, str(len(AOI)), True, "Error: Overlapping AOIs are not allowed."
+                
                 AOI.append(indices)
                 AOI_type = "free"
-            return counter + 1, str(len(AOI))
+            return counter + 1, str(len(AOI)), False, ""
 
     raise dash.exceptions.PreventUpdate
 
