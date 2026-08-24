@@ -16,6 +16,12 @@ import dash_bootstrap_components as dbc
 import dash
 
 import scanpath_converter as sc
+import re
+
+def secure_filename(filename):
+    """Sanitize filename to prevent path traversal and basic injection, preserving spaces."""
+    # Remove path separators and risky shell/html characters
+    return re.sub(r'[<>\/\\|&:;$]', '_', filename)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -391,6 +397,7 @@ def register_callbacks(app):
         if contents is None:
             return (no_update,) * 7
 
+        filename = secure_filename(filename)
         _, ext = os.path.splitext(filename.lower())
         if ext not in ALLOWED_STIMULUS_EXTENSIONS:
             return (no_update, no_update,
@@ -635,6 +642,8 @@ def register_callbacks(app):
         if not isinstance(contents_list, list):
             contents_list = [contents_list]
             filenames = [filenames]
+
+        filenames = [secure_filename(f) for f in filenames]
 
         # Load existing raw texts if any
         raw_texts = {}
@@ -903,7 +912,9 @@ def register_callbacks(app):
     )
     def store_custom_video(contents, filename):
         if not contents or not filename:
-            return no_update
+            raise dash.exceptions.PreventUpdate
+        
+        filename = secure_filename(filename)
         _, ext = os.path.splitext(filename.lower())
         if ext in ALLOWED_VIDEO_EXTENSIONS:
             # Return the full data URL so the video player can use it as src
