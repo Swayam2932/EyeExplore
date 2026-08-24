@@ -86,10 +86,16 @@ def make_image_upload():
             className='upload-zone',
             multiple=False,
         ),
-        # Thumbnail preview
-        html.Div(id='image-preview-container', children=[], style={'marginTop': '6px'}),
-        # Error message
-        html.Div(id='image-upload-error', className='upload-error'),
+        # Thumbnail preview and loading state
+        dcc.Loading(
+            id="loading-image-upload",
+            type="circle",
+            color="#3f51b5",
+            children=[
+                html.Div(id='image-preview-container', children=[], style={'marginTop': '6px'}),
+                html.Div(id='image-upload-error', className='upload-error')
+            ]
+        ),
     ], style={'flex': '1', 'minWidth': '180px'})
 
 
@@ -107,10 +113,16 @@ def make_scanpath_upload():
             multiple=True,
             accept=','.join(ALLOWED_SCANPATH_EXTENSIONS),
         ),
-        # File chips
-        html.Div(id='scanpath-file-chips', children=[], style={'marginTop': '6px', 'display': 'flex', 'flexWrap': 'wrap', 'gap': '4px'}),
-        # Error message
-        html.Div(id='scanpath-upload-error', className='upload-error'),
+        # File chips and loading state
+        dcc.Loading(
+            id="loading-scanpath-upload",
+            type="circle",
+            color="#3f51b5",
+            children=[
+                html.Div(id='scanpath-file-chips', children=[], style={'marginTop': '6px', 'display': 'flex', 'flexWrap': 'wrap', 'gap': '4px'}),
+                html.Div(id='scanpath-upload-error', className='upload-error')
+            ]
+        ),
     ], style={'flex': '1.5', 'minWidth': '200px'})
 
 
