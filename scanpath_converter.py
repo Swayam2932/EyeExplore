@@ -19,7 +19,7 @@ from shapely.geometry.polygon import Polygon
 # ═══════════════════════════════════════════════════════════════════════════════
 
 ALLOWED_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp', '.webp'}
-ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.webm', '.mkv'}
+ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.webm', '.mkv', '.avi'}
 ALLOWED_STIMULUS_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | ALLOWED_VIDEO_EXTENSIONS
 MAX_IMAGE_SIZE_MB = 10
 MAX_VIDEO_SIZE_MB = 50

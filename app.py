@@ -55,8 +55,7 @@ PLOT_TYPES = [
     {'value': 'detection',     'label': 'Object Detection',      'icon': 'bi-bounding-box'},
     {'value': 'transition',    'label': 'Transition Matrix',     'icon': 'bi-arrow-left-right'},
     {'value': 'k_video',       'label': 'Synced Video + K-Timeline', 'icon': 'bi-play-circle-fill'},
-    {'value': 'k_timeline',    'label': 'K-Coefficient Timeline','icon': 'bi-activity'},
-    {'value': 'k_heatmap',     'label': 'Focal/Ambient Heatmap', 'icon': 'bi-thermometer-half'},
+    {'value': 'k_timeline',    'label': 'K-Coefficient Timeline','icon': 'bi-activity'}
 ]
 
 DROPDOWN_OPTIONS = [{'label': pt['label'], 'value': pt['value']} for pt in PLOT_TYPES]
@@ -637,7 +636,7 @@ def _decode_custom_image(custom_image_store):
     return img_array, width, height, image_url
 
 
-def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store=None, override_dfs=None):
+def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_store=None, override_dfs=None, auto_scale_w_h=None):
     """Deserialize selected participants' DataFrames from the store (or override_dfs) and filter by keyframe time window if active."""
     dfs = []
 
@@ -646,6 +645,13 @@ def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_
     if custom_image_store and isinstance(custom_image_store, dict):
         kf_start = custom_image_store.get('keyframe_time_start')
         kf_end = custom_image_store.get('keyframe_time_end')
+        
+        # Fallback to image dimensions if auto_scale_w_h not explicitly provided
+        if not auto_scale_w_h:
+            w = custom_image_store.get('width')
+            h = custom_image_store.get('height')
+            if w and h:
+                auto_scale_w_h = (w, h)
 
     store = json.loads(custom_scanpaths_store) if custom_scanpaths_store else {}
 
@@ -696,6 +702,18 @@ def _get_custom_scanpath_dfs(custom_scanpaths_store, participants, custom_image_
 
         if not df.empty:
             dfs.append(df)
+            
+    # Auto-scale percentages to pixels if requested and detected
+    if auto_scale_w_h:
+        w, h = auto_scale_w_h
+        if w and h and w > 200 and h > 200:
+            for i, df in enumerate(dfs):
+                if not df.empty and df['X'].max() <= 100.01 and df['Y'].max() <= 100.01:
+                    scaled = df.copy()
+                    scaled['X'] = scaled['X'] / 100.0 * w
+                    scaled['Y'] = scaled['Y'] / 100.0 * h
+                    dfs[i] = scaled
+
     return dfs
 
 
@@ -1790,7 +1808,7 @@ def update_left_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
                 if not custom_image:
                     return empty_figure("Upload a stimulus image to begin")
                 _, img_w, img_h, img_url = _decode_custom_image(custom_image)
-                custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, active_participants, custom_image)
+                custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, active_participants, None)
                 if not custom_dfs_list:
                     return empty_figure("No data for selected participants")
                 custom_dfs = {str(p): df for p, df in zip(active_participants, custom_dfs_list)}
@@ -1858,7 +1876,7 @@ def update_right_graph(plot_type, db_name, stimulus, participants, _aoi_trigger,
                 if not custom_image:
                     return empty_figure("Upload a stimulus image to begin")
                 _, img_w, img_h, img_url = _decode_custom_image(custom_image)
-                custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, active_participants, custom_image)
+                custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, active_participants, None)
                 if not custom_dfs_list:
                     return empty_figure("No data for selected participants")
                 custom_dfs = {str(p): df for p, df in zip(active_participants, custom_dfs_list)}
@@ -2030,8 +2048,10 @@ def populate_fixation_data(participants, plot_type, mode, custom_scanpaths, cust
         if mode == 'k_dataset':
             source_dfs = k_dataset.K_DFS
         elif mode == 'custom' and custom_scanpaths:
-            # Build custom dfs
-            custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, participants, custom_image)
+            # Explicitly request scaling even though custom_image_store is None (to bypass keyframe filter)
+            w = custom_image.get('width') if custom_image else None
+            h = custom_image.get('height') if custom_image else None
+            custom_dfs_list = _get_custom_scanpath_dfs(custom_scanpaths, participants, None, auto_scale_w_h=(w, h))
             source_dfs = {str(p): df for p, df in zip(participants, custom_dfs_list)} if custom_dfs_list else {}
         else:
             return None
@@ -2052,8 +2072,14 @@ def populate_fixation_data(participants, plot_type, mode, custom_scanpaths, cust
                     x_val = float(row['X']) if mode == 'k_dataset' else float(row.get('X', 0))
                     y_val = float(row['Y']) if mode == 'k_dataset' else float(row.get('Y', 0))
                     
-                    x_pct = x_val / k_dataset.STIMULUS_WIDTH * 100.0 if mode == 'k_dataset' else x_val
-                    y_pct = y_val / k_dataset.STIMULUS_HEIGHT * 100.0 if mode == 'k_dataset' else y_val
+                    if mode == 'k_dataset':
+                        x_pct = x_val / k_dataset.STIMULUS_WIDTH * 100.0
+                        y_pct = y_val / k_dataset.STIMULUS_HEIGHT * 100.0
+                    else:
+                        img_w = custom_image.get('width') if custom_image else None
+                        img_h = custom_image.get('height') if custom_image else None
+                        x_pct = (x_val / img_w * 100.0) if img_w else x_val
+                        y_pct = (y_val / img_h * 100.0) if img_h else y_val
                     
                     fixation_points.append({
                         'time_sec': float(row['TIME_FROM']) / 1000.0,

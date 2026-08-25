@@ -318,6 +318,8 @@ def register_callbacks(app):
         Output('ddParticipants-left', 'value', allow_duplicate=True),
         Output('ddParticipants-right', 'options', allow_duplicate=True),
         Output('ddParticipants-right', 'value', allow_duplicate=True),
+        Output('left-plot-type', 'value', allow_duplicate=True),
+        Output('right-plot-type', 'value', allow_duplicate=True),
         [Input('btn-mode-builtin', 'n_clicks'),
          Input('btn-mode-custom', 'n_clicks'),
          Input('btn-mode-kdataset', 'n_clicks')],
@@ -352,6 +354,8 @@ def register_callbacks(app):
                 participant_values,
                 participant_options,
                 participant_values,
+                'stimulus',
+                'attention',
             )
         elif trigger == 'btn-mode-kdataset':
             # Switching TO K-Coefficient Dataset mode
@@ -370,6 +374,8 @@ def register_callbacks(app):
                 participant_values,
                 participant_options,
                 participant_values,
+                'stimulus',
+                'attention',
             )
         else:
             # Switching TO builtin mode — clear participants (will be repopulated
@@ -387,6 +393,8 @@ def register_callbacks(app):
                 [],
                 [],
                 [],
+                'stimulus',
+                'attention',
             )
     
     # ── Image/Video upload ──
