@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EyeExplore — Interactive Test Runner</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #f7f7f7;
+    --card-hover: #efefef;
+    --border: #ddd;
+    --text: #111111;
+    --text-dim: #777777;
+    --accent: #333333;
+    --accent-light: #555555;
+    --pass: #22c55e;
+    --pass-bg: rgba(34,197,94,0.1);
+    --fail: #ef4444;
+    --fail-bg: rgba(239,68,68,0.1);
+    --skip: #f59e0b;
+    --skip-bg: rgba(245,158,11,0.1);
+    --untested: #999999;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 16px;
+    backdrop-filter: blur(12px);
+  }
+  .topbar h1 {
+    font-size: 18px; font-weight: 700;
+    color: #111111;
+  }
+  .topbar .version { font-size: 11px; color: var(--text-dim); margin-left: -8px; }
+
+  /* ── Stats Strip ── */
+  .stats-strip {
+    display: flex; gap: 12px; margin-left: auto; align-items: center; flex-wrap: wrap;
+  }
+  .stat-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .stat-pill .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .stat-pill.pass .dot { background: var(--pass); }
+  .stat-pill.fail .dot { background: var(--fail); }
+  .stat-pill.skip .dot { background: var(--skip); }
+  .stat-pill.untested .dot { background: var(--untested); }
+
+  /* ── Progress Bar ── */
+  .global-progress {
+    height: 3px; background: var(--border); width: 100%;
+  }
+  .global-progress-fill {
+    height: 100%; background: #333333;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex; min-height: calc(100vh - 80px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px; min-width: 260px;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+    overflow-y: auto;
+    position: sticky; top: 52px;
+    height: calc(100vh - 55px);
+  }
+  .sidebar-section {
+    padding: 6px 16px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 500;
+    transition: background 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .sidebar-section:hover { background: var(--card-hover); }
+  .sidebar-section.active {
+    background: rgba(0,0,0,0.05);
+    border-left-color: #111111;
+    color: #111111;
+  }
+  .sidebar-section .section-progress {
+    margin-left: auto;
+    font-size: 11px; color: var(--text-dim);
+  }
+  .sidebar-section .section-bar {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: var(--border); margin-left: 8px; overflow: hidden;
+  }
+  .sidebar-section .section-bar-fill {
+    height: 100%; background: var(--pass); border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* ── Search + Filter Bar ── */
+  .toolbar {
+    padding: 12px 24px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    padding: 8px 14px;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+    font-size: 13px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text-dim); }
+
+  .filter-btn {
+    padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card); color: var(--text-dim);
+    font-size: 12px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .timer-display {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 14px; color: var(--accent-light);
+    padding: 6px 12px;
+    background: var(--bg); border-radius: 6px;
+    border: 1px solid var(--border);
+    min-width: 90px; text-align: center;
+  }
+  .timer-btn {
+    padding: 6px 10px; border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: transparent; color: var(--accent);
+    font-size: 12px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .timer-btn:hover { background: var(--accent); color: white; }
+
+  /* ── Main Content ── */
+  .main {
+    flex: 1; padding: 20px 24px; overflow-y: auto;
+  }
+
+  .section-header {
+    font-size: 20px; font-weight: 700;
+    margin: 28px 0 6px 0;
+    display: flex; align-items: center; gap: 12px;
+    color: var(--text);
+  }
+  .section-header:first-child { margin-top: 0; }
+  .section-header .badge {
+    font-size: 11px; padding: 2px 10px;
+    border-radius: 12px; font-weight: 600;
+    background: #222; color: white;
+  }
+  .section-sub {
+    font-size: 12px; color: var(--text-dim); margin-bottom: 14px;
+  }
+
+  /* ── Test Card ── */
+  .test-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+    overflow: hidden;
+  }
+  .test-card:hover { border-color: #3a3e5a; }
+  .test-card.status-pass { border-left: 3px solid var(--pass); }
+  .test-card.status-fail { border-left: 3px solid var(--fail); }
+  .test-card.status-skip { border-left: 3px solid var(--skip); }
+
+  .test-card-header {
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .test-id {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; color: var(--accent);
+    min-width: 100px;
+    font-weight: 600;
+  }
+  .test-title {
+    flex: 1; font-size: 13px; font-weight: 500;
+  }
+  .test-tags {
+    display: flex; gap: 4px;
+  }
+  .test-tag {
+    font-size: 9px; padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.08); color: #555;
+    text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .test-tag.aoi { background: rgba(245,158,11,0.15); color: var(--skip); }
+
+  .status-btns {
+    display: flex; gap: 4px;
+  }
+  .status-btn {
+    padding: 4px 12px; border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    color: var(--text-dim);
+  }
+  .status-btn:hover { transform: scale(1.05); }
+  .status-btn.pass-btn:hover, .status-btn.pass-btn.active {
+    background: var(--pass-bg); border-color: var(--pass); color: var(--pass);
+  }
+  .status-btn.fail-btn:hover, .status-btn.fail-btn.active {
+    background: var(--fail-bg); border-color: var(--fail); color: var(--fail);
+  }
+  .status-btn.skip-btn:hover, .status-btn.skip-btn.active {
+    background: var(--skip-bg); border-color: var(--skip); color: var(--skip);
+  }
+
+  .expand-icon {
+    font-size: 12px; color: var(--text-dim);
+    transition: transform 0.2s;
+    min-width: 16px; text-align: center;
+  }
+  .test-card.expanded .expand-icon { transform: rotate(90deg); }
+
+  /* ── Expanded Details ── */
+  .test-details {
+    display: none;
+    padding: 0 16px 14px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .test-card.expanded .test-details { display: block; }
+
+  .detail-grid {
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 4px 12px; margin-top: 10px;
+    font-size: 12px;
+  }
+  .detail-label {
+    color: var(--text-dim); font-weight: 600;
+    text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;
+    padding-top: 2px;
+  }
+  .detail-value { color: var(--text); }
+  .detail-value ol, .detail-value ul {
+    padding-left: 16px; margin: 2px 0;
+  }
+  .detail-value li { margin-bottom: 2px; }
+
+  .notes-field {
+    width: 100%;
+    margin-top: 10px; padding: 8px 12px;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+    font-size: 12px; font-family: inherit;
+    resize: vertical; min-height: 50px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .notes-field:focus { border-color: var(--accent); }
+  .notes-field::placeholder { color: var(--text-dim); }
+
+  /* ── Export Bar ── */
+  .export-bar {
+    padding: 16px 24px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; align-items: center; justify-content: flex-end;
+    position: sticky; bottom: 0;
+  }
+  .export-btn {
+    padding: 8px 20px; border-radius: 8px;
+    border: none; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .export-btn.primary {
+    background: #222; color: white;
+  }
+  .export-btn.primary:hover { background: var(--accent-light); }
+  .export-btn.secondary {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+  }
+  .export-btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .export-btn.danger {
+    background: transparent; border: 1px solid var(--fail); color: var(--fail);
+  }
+  .export-btn.danger:hover { background: var(--fail-bg); }
+
+  .hidden { display: none !important; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 80px; right: 24px;
+    background: var(--pass); color: white;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    transform: translateY(20px); opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 200;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>EyeExplore</h1>
+  <span class="version">Test Runner v2.0</span>
+  <div class="stats-strip">
+    <div class="stat-pill pass"><span class="dot"></span><span id="stat-pass">0</span> Passed</div>
+    <div class="stat-pill fail"><span class="dot"></span><span id="stat-fail">0</span> Failed</div>
+    <div class="stat-pill skip"><span class="dot"></span><span id="stat-skip">0</span> Skipped</div>
+    <div class="stat-pill untested"><span class="dot"></span><span id="stat-untested">63</span> Untested</div>
+  </div>
+</div>
+<div class="global-progress"><div class="global-progress-fill" id="global-progress-fill" style="width:0%"></div></div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <div style="flex:1; display:flex; flex-direction:column;">
+    <div class="toolbar">
+      <input type="text" class="search-box" id="search" placeholder="Search test cases... (ID, title, or keyword)">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="pass" onclick="setFilter('pass')">Passed</button>
+      <button class="filter-btn" data-filter="fail" onclick="setFilter('fail')">Failed</button>
+      <button class="filter-btn" data-filter="skip" onclick="setFilter('skip')">Skipped</button>
+      <button class="filter-btn" data-filter="untested" onclick="setFilter('untested')">Untested</button>
+      <span style="color:var(--text-dim);font-size:12px;">|</span>
+      <span class="timer-display" id="timer">00:00:00</span>
+      <button class="timer-btn" id="timer-btn" onclick="toggleTimer()">Start</button>
+    </div>
+
+    <main class="main" id="main-content"></main>
+
+    <div class="export-bar">
+      <span style="font-size:12px;color:var(--text-dim);margin-right:auto;" id="last-saved"></span>
+      <button class="export-btn danger" onclick="resetAll()">Reset All</button>
+      <button class="export-btn secondary" onclick="exportCSV()">Export CSV</button>
+      <button class="export-btn primary" onclick="exportJSON()">Export JSON Report</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// TEST DATA
+// ════════════════════════════════════════════════════════════════
+const TEST_SECTIONS = [
+  {
+    id: 'env', title: 'Environment Setup', icon: '🖥️',
+    tests: [
+      { id: 'TC-ENV-01', title: 'Application Launch', tags: [],
+        precondition: 'Python 3.10+ installed with dependencies.',
+        steps: ['Open Terminal and cd to EyeExplore directory.', 'Run: python app.py', 'Open http://localhost:8050 in Chrome/Firefox.'],
+        expected: 'Dashboard loads with Built-in Datasets tab active. Left panel shows "Stimulus Image", right panel shows "Attention Map". No console errors.' },
+      { id: 'TC-ENV-02', title: 'Browser Compatibility', tags: [],
+        precondition: 'Dashboard running at localhost:8050.',
+        steps: ['Open dashboard URL in Chrome.', 'Open in Firefox.', 'Open in Safari.', 'Open in Edge.'],
+        expected: 'Dashboard renders correctly in all browsers. All controls (dropdowns, buttons, sliders) are functional.' },
+    ]
+  },
+  {
+    id: 'bd-load', title: 'Built-in Datasets - Loading', icon: '📦',
+    tests: [
+      { id: 'TC-BD-01', title: 'Load MIT1003 Dataset', tags: ['MIT1003'],
+        precondition: 'Dashboard loaded, Built-in Datasets tab active.',
+        steps: ['Click the Built-in Datasets tab.', 'Select MIT1003 from the Dataset dropdown.'],
+        expected: 'Stimulus dropdown populates with ~1003 stimulus names. Participant dropdowns populate with ~15 participants. Both panels render the first stimulus.' },
+      { id: 'TC-BD-02', title: 'Load SIENA12 Dataset', tags: ['SIENA12'],
+        precondition: 'Dashboard loaded.',
+        steps: ['Select SIENA12 from the Dataset dropdown.'],
+        expected: 'Stimulus dropdown shows exactly 12 stimuli (building.jpg, desert.jpg, empty.jpg, etc.). Participant dropdowns show ~23 participants.' },
+      { id: 'TC-BD-03', title: 'Load VisRecall++ Dataset', tags: ['VisRecall++'],
+        precondition: 'Dashboard loaded.',
+        steps: ['Select VisRecall++ from the Dataset dropdown.'],
+        expected: 'Stimulus dropdown shows 171 stimuli (economist_daily_chart_*.png, wsj*.png, etc.). Participant dropdowns show ~14 participants.' },
+      { id: 'TC-BD-04', title: 'Switch Stimulus', tags: [],
+        precondition: 'MIT1003 loaded.',
+        steps: ['Select stimulus i05june05_static_street_boston_p1010764.jpeg.', 'Verify both panels update.', 'Switch to a different stimulus.'],
+        expected: 'Both panels re-render with the new stimulus image. Participant list updates. No stale data from previous stimulus.' },
+      { id: 'TC-BD-05', title: 'Select Participants', tags: [],
+        precondition: 'SIENA12 loaded, building.jpg selected.',
+        steps: ['Select participants AR_06102016 and AV_10022017 from the left panel dropdown.'],
+        expected: 'Left panel visualization updates to show data for only the two selected participants.' },
+    ]
+  },
+  {
+    id: 'bd-vis', title: 'Built-in Datasets - Visualizations', icon: '📊',
+    tests: [
+      { id: 'TC-BD-VIS-01', title: 'Stimulus Image', tags: [],
+        precondition: 'SIENA12, building.jpg selected.',
+        steps: ['Set left panel to Stimulus Image.'],
+        expected: 'Raw stimulus image displayed, properly scaled. Plotly toolbar visible (zoom, pan, draw tools). No scanpath data overlaid.' },
+      { id: 'TC-BD-VIS-02', title: 'Scanpath Animation', tags: ['1+ participant'],
+        precondition: 'SIENA12, building.jpg, 1 participant selected.',
+        steps: ['Set left panel to Scanpath Animation.', 'Click the Play button in Plotly animation controls.'],
+        expected: 'Fixation points appear one by one over the stimulus, connected by saccade lines. Circle sizes correspond to fixation duration.' },
+      { id: 'TC-BD-VIS-03', title: 'Scanpath Overlay', tags: ['1 participant'],
+        precondition: 'SIENA12, building.jpg, 1 participant selected.',
+        steps: ['Set left panel to Scanpath Overlay.'],
+        expected: 'Static overlay: red numbered circles (fixation points) connected by blue saccade lines with blue arrow markers. Circle sizes proportional to fixation duration.' },
+      { id: 'TC-BD-VIS-04', title: 'Attention Map (Heatmap)', tags: ['2+ participants'],
+        precondition: 'SIENA12, building.jpg, 2+ participants selected.',
+        steps: ['Set right panel to Attention Map.'],
+        expected: 'Heat map overlaid on stimulus. Red/yellow = high fixation density. Blue/green = low attention. Aggregates all selected participants.' },
+      { id: 'TC-BD-VIS-05', title: 'Scarf Plot', tags: ['AOI required', '1+ participant'],
+        precondition: 'SIENA12, building.jpg, 2+ participants selected, 1+ AOI drawn.',
+        steps: ['Set left panel to Scarf Plot.'],
+        expected: 'Horizontal bar chart. Each row = one participant. Colored segments show time in each AOI chronologically. Without AOIs: empty/error message.' },
+      { id: 'TC-BD-VIS-06', title: 'AOI Timeline', tags: ['AOI required', '1+ participant'],
+        precondition: 'SIENA12, building.jpg, 2+ participants, 2+ AOIs drawn.',
+        steps: ['Set panel to AOI Timeline.'],
+        expected: 'Time-series line chart showing when each AOI was visited. Different AOIs distinguished by color.' },
+      { id: 'TC-BD-VIS-07', title: '3D Scanpath', tags: ['1+ participant'],
+        precondition: 'SIENA12, building.jpg, 1 participant.',
+        steps: ['Set panel to 3D Scanpath.', 'Click and drag to rotate the 3D view.'],
+        expected: 'X,Y = gaze coordinates, Z = time. Scanpath shown as 3D trajectory. Rotate, zoom, and pan work.' },
+      { id: 'TC-BD-VIS-08', title: '3D Scatter', tags: ['1+ participant'],
+        precondition: 'SIENA12, building.jpg, 1+ participants.',
+        steps: ['Set panel to 3D Scatter.'],
+        expected: 'Scatter plot in 3D. Fixation points at (X, Y, Time). Point sizes encode duration. Interactive.' },
+      { id: 'TC-BD-VIS-09', title: 'Co-association Matrix', tags: ['3+ participants'],
+        precondition: 'SIENA12, building.jpg, 3+ participants.',
+        steps: ['Set panel to Co-association Matrix.'],
+        expected: 'Square matrix heatmap. Rows/columns = participant IDs. Darker cells = higher gaze agreement. Diagonal = darkest.' },
+      { id: 'TC-BD-VIS-10', title: 'Object Detection', tags: ['YOLO'],
+        precondition: 'SIENA12, any stimulus.',
+        steps: ['Set panel to Object Detection.'],
+        expected: 'YOLO runs on stimulus. Detected objects shown with bounding boxes, labels, and confidence scores.' },
+      { id: 'TC-BD-VIS-11', title: 'Transition Matrix', tags: ['AOI required'],
+        precondition: 'SIENA12, building.jpg, 3+ AOIs drawn.',
+        steps: ['Set panel to Transition Matrix.'],
+        expected: 'Square matrix: rows/columns = AOI labels. Cell values = gaze transition frequency. Heatmap color scale.' },
+    ]
+  },
+  {
+    id: 'mod-upload', title: 'My Own Data - Uploads', icon: '📤',
+    tests: [
+      { id: 'TC-MOD-01', title: 'Upload Stimulus Image (PNG)', tags: ['upload'],
+        precondition: 'My Own Data tab active.',
+        steps: ['Click stimulus upload area.', 'Select a .png file (under 10 MB).'],
+        expected: 'Image accepted. Preview chip shows filename and resolution (e.g., 1920x1080px). Both panels display the uploaded image.' },
+      { id: 'TC-MOD-02', title: 'Upload Stimulus Image (JPEG, BMP, WEBP)', tags: ['upload'],
+        precondition: 'My Own Data tab active.',
+        steps: ['Repeat TC-MOD-01 with .jpg, .bmp, and .webp files.'],
+        expected: 'All image formats are accepted and displayed correctly.' },
+      { id: 'TC-MOD-03', title: 'Upload Stimulus Video (MP4, WEBM)', tags: ['upload', 'video'],
+        precondition: 'My Own Data tab active.',
+        steps: ['Click upload area.', 'Select a .mp4 or .webm video file.'],
+        expected: 'Video accepted. Key frames extracted. "Key Frames" dropdown populates. Preview shows filename, frame count, and file size.' },
+      { id: 'TC-MOD-04', title: 'Upload Oversize File (>10MB)', tags: ['upload', 'error'],
+        precondition: 'My Own Data tab active.',
+        steps: ['Try uploading an image file larger than 10 MB.'],
+        expected: 'Error message: "File too large (max 10 MB)". File rejected.' },
+      { id: 'TC-MOD-05', title: 'Upload Invalid File Type', tags: ['upload', 'error'],
+        precondition: 'My Own Data tab active.',
+        steps: ['Try uploading a .pdf, .docx, or .exe as stimulus.'],
+        expected: 'File rejected with appropriate error message.' },
+      { id: 'TC-MOD-06', title: 'Scanpath CSV (Explicit 4-col)', tags: ['upload', 'csv'],
+        precondition: 'Stimulus uploaded.',
+        steps: ['Select "My file has Start & End time (4 columns)".', 'Upload CSV with X, Y, START, END columns.'],
+        expected: 'File accepted. Green chip appears. Column mapping panel shows dropdowns for X, Y, START, END.' },
+      { id: 'TC-MOD-07', title: 'Scanpath CSV (Cumulative 3-col)', tags: ['upload', 'csv'],
+        precondition: 'Stimulus uploaded.',
+        steps: ['Select "one cumulative time value (3 columns)".', 'Upload CSV with X, Y, TIMESTAMP.'],
+        expected: 'Accepted. Column mapping shows X, Y, T.' },
+      { id: 'TC-MOD-08', title: 'Upload Scanpath TSV', tags: ['upload'],
+        precondition: 'Stimulus uploaded.',
+        steps: ['Upload a .tsv scanpath file.'],
+        expected: 'TSV parsed correctly with auto-detected tab delimiters.' },
+      { id: 'TC-MOD-09', title: 'Upload Multiple Scanpath Files', tags: ['upload'],
+        precondition: 'Stimulus uploaded.',
+        steps: ['Upload 3 different scanpath CSV files.'],
+        expected: 'All 3 appear as green chips. Participant dropdown shows 3 names.' },
+      { id: 'TC-MOD-10', title: 'Exceed Max Scanpath Files (>10)', tags: ['upload', 'error'],
+        precondition: 'Stimulus uploaded.',
+        steps: ['Try uploading more than 10 scanpath files.'],
+        expected: 'Error: "Too many files total (max 10)". Excess rejected.' },
+      { id: 'TC-MOD-11', title: 'Column Mapping & Preview', tags: ['mapping'],
+        precondition: 'CSV uploaded.',
+        steps: ['Assign X, Y, START, END to correct columns.', 'Click "Apply Mapping".'],
+        expected: 'Preview table shows first 5 rows (SUBJECT, X, Y, TIME_FROM, TIME_TO). "Confirm & Load" button available.' },
+      { id: 'TC-MOD-12', title: 'Duplicate Column Mapping Error', tags: ['mapping', 'error'],
+        precondition: 'Column mapper open.',
+        steps: ['Assign "X" to two different columns.', 'Click Apply.'],
+        expected: 'Error: "X is assigned to multiple columns".' },
+      { id: 'TC-MOD-13', title: 'Missing Required Field Error', tags: ['mapping', 'error'],
+        precondition: 'Column mapper open.',
+        steps: ['Leave "Y" mapping unassigned.', 'Click Apply.'],
+        expected: 'Error: "Missing required mappings: Y".' },
+    ]
+  },
+  {
+    id: 'mod-vis', title: 'My Own Data - Visualizations', icon: '🎨',
+    tests: [
+      { id: 'TC-MOD-VIS-01', title: 'Scanpath Overlay (Custom Data)', tags: [],
+        precondition: 'Image + 1 scanpath loaded and confirmed.',
+        steps: ['Select Scanpath Overlay in left panel.', 'Select the participant.'],
+        expected: 'Numbered fixation circles and saccade lines over image. Coordinates within image bounds (not squished to corner).' },
+      { id: 'TC-MOD-VIS-02', title: 'Attention Map (Custom Data)', tags: [],
+        precondition: 'Image + 1+ scanpath loaded.',
+        steps: ['Select Attention Map in right panel.'],
+        expected: 'Heatmap rendered over image. Hot regions match fixation density.' },
+      { id: 'TC-MOD-VIS-03', title: 'Scanpath Animation (Custom Data)', tags: [],
+        precondition: 'Image + 1 scanpath loaded.',
+        steps: ['Select Scanpath Animation.', 'Play animation.'],
+        expected: 'Fixation points animate in sequence over the image.' },
+      { id: 'TC-MOD-VIS-04', title: 'Video Key Frame Selection', tags: ['video'],
+        precondition: 'Video uploaded with extracted key frames.',
+        steps: ['Select a different key frame from dropdown (e.g., Frame 10).'],
+        expected: 'Stimulus view updates to selected frame. Scanpath data filters to that time window.' },
+      { id: 'TC-MOD-VIS-05', title: 'Synced Video + K-Timeline (Custom)', tags: ['video', 'K-coeff'],
+        precondition: 'Video + K-coefficient CSV (with K_squashed column) loaded.',
+        steps: ['Select Synced Video + K-Timeline (left).', 'Select K-Coefficient Timeline (right).', 'Play video.'],
+        expected: 'LEFT: Video plays with black fixation dot tracking gaze. RIGHT: Full K-Timeline with red scrubber moving in sync. Timeline shows full video duration, not truncated.' },
+      { id: 'TC-MOD-VIS-06', title: 'K-Timeline Full Range Check', tags: ['video', 'K-coeff'],
+        precondition: 'Same as TC-MOD-VIS-05.',
+        steps: ['Check X-axis (Time) range of K-Timeline.', 'Compare to video duration.'],
+        expected: 'X-axis spans 0 to full video duration (e.g., 0-490s for 8-min video). NOT limited to a tiny window.' },
+      { id: 'TC-MOD-VIS-07', title: 'Percentage-Based Scanpath Auto-Scaling', tags: ['auto-scale'],
+        precondition: 'Video (1920x1080) + K-coefficient CSV with percentage coordinates (0-100).',
+        steps: ['Select Scanpath Overlay.', 'Select participant.'],
+        expected: 'Fixation points distributed across full image. NOT clustered in top-left corner.' },
+      { id: 'TC-MOD-UX-01', title: 'Upload Progress Indicator', tags: ['UX'],
+        precondition: 'My Own Data tab.',
+        steps: ['Upload a large video file (5 MB+).', 'Observe UI during upload.'],
+        expected: 'Progress indicator or spinner shown during processing. Tab header shows activity. UI not frozen.' },
+    ]
+  },
+  {
+    id: 'kd', title: 'K-Coefficient Dataset', icon: '📈',
+    tests: [
+      { id: 'TC-KD-01', title: 'Load K-Coefficient Tab', tags: [],
+        precondition: 'Dashboard running.',
+        steps: ['Click the K-Coefficient Dataset tab.'],
+        expected: 'Video dropdown shows 27 video numbers (2-45). Key Frames dropdown appears. Participant dropdowns populate.' },
+      { id: 'TC-KD-02', title: 'Select Video', tags: [],
+        precondition: 'K-Coefficient tab active.',
+        steps: ['Select Video 2 from dropdown.'],
+        expected: 'Key Frames populates with frame options. Left panel shows key frame image. Participant dropdown shows "2".' },
+      { id: 'TC-KD-03', title: 'Switch Between Videos', tags: [],
+        precondition: 'K-Coefficient tab.',
+        steps: ['Select Video 6, wait for load.', 'Switch to Video 10.'],
+        expected: 'Key frames update, participant list updates, panels re-render. No stale data.' },
+      { id: 'TC-KD-04', title: 'Key Frame Selection', tags: [],
+        precondition: 'Video 2 selected.',
+        steps: ['Change Key Frame from "Frame 1 - 0.0s" to "Frame 23 - 31.2s".'],
+        expected: 'Stimulus updates to ~31.2s frame. Static visualizations update to that time window.' },
+      { id: 'TC-KD-VIS-01', title: 'Synced Video + K-Timeline', tags: ['sync', 'video'],
+        precondition: 'K-Coefficient tab, Video 2.',
+        steps: ['Left: Synced Video + K-Timeline.', 'Right: K-Coefficient Timeline.', 'Select participant 2.', 'Play video.'],
+        expected: 'LEFT: Video plays with black fixation dot + trailing dots. RIGHT: K-Timeline with green (focal, K>0) and pink (ambient, K<0) shading. Red scrubber line moves in sync.' },
+      { id: 'TC-KD-VIS-02', title: 'Scrubber Line Sync Accuracy', tags: ['sync'],
+        precondition: 'Synced video playing.',
+        steps: ['Pause video at ~1:00 (60 seconds).', 'Check red scrubber position on timeline.'],
+        expected: 'Scrubber at approximately X=60 on Time axis. Fixation dot at correct gaze position for 60s mark.' },
+      { id: 'TC-KD-VIS-03', title: 'K-Timeline Chart Content', tags: [],
+        precondition: 'K-Coefficient tab, Video 2, participant 2.',
+        steps: ['Set right panel to K-Coefficient Timeline.', 'Inspect chart.'],
+        expected: 'Title: "K-Coefficient Timeline". X: "Time (s)". Y: "Squashed K Coefficient". Green region above 0 (Focal). Pink region below 0 (Ambient). Blue data line. Legend with participant name.' },
+      { id: 'TC-KD-VIS-04', title: 'Scanpath Overlay (K-Dataset)', tags: [],
+        precondition: 'K-Coefficient tab, Video 2, Frame selected, participant 2.',
+        steps: ['Set left panel to Scanpath Overlay.'],
+        expected: 'Fixation circles and saccade lines on key frame image. Points distributed across image.' },
+      { id: 'TC-KD-VIS-05', title: 'Attention Map (K-Dataset)', tags: [],
+        precondition: 'K-Coefficient tab, Video 2, participant 2.',
+        steps: ['Set right panel to Attention Map.'],
+        expected: 'Proper heatmap on key frame image showing fixation density.' },
+      { id: 'TC-KD-VIS-06', title: 'Tab Switch State Reset', tags: ['state'],
+        precondition: 'K-Coefficient tab, video playing with sync.',
+        steps: ['Start Synced Video + K-Timeline, play video.', 'Switch to Built-in Datasets tab.', 'Switch back to K-Coefficient.'],
+        expected: 'Left panel resets. Fixation dot and scrubber reset. Video pauses/resets. No stale animation.' },
+    ]
+  },
+  {
+    id: 'global', title: 'Cross-Tab & Global', icon: '🌐',
+    tests: [
+      { id: 'TC-GLOBAL-01', title: 'Tab Switching Cycle', tags: [],
+        steps: ['Start in Built-in Datasets with SIENA12.', 'Switch to My Own Data.', 'Switch to K-Coefficient.', 'Switch back to Built-in.'],
+        expected: 'Each tab loads correctly. Controls update per tab. No crashes or stale data.' },
+      { id: 'TC-GLOBAL-02', title: 'Tutorial Button', tags: ['UX'],
+        steps: ['Click the Tutorial button in top nav.'],
+        expected: 'Interactive guided tour starts with spotlight animations and tooltips highlighting each control.' },
+      { id: 'TC-GLOBAL-03', title: 'Info Button (Left Panel)', tags: [],
+        steps: ['Set left panel to Attention Map.', 'Click the blue info button.'],
+        expected: 'Modal opens with Attention Map description, interpretation guide, and usage tips.' },
+      { id: 'TC-GLOBAL-04', title: 'Info Button (Right Panel)', tags: [],
+        steps: ['Set right panel to Scarf Plot.', 'Click the red info button.'],
+        expected: 'Modal opens with Scarf Plot documentation.' },
+      { id: 'TC-GLOBAL-05', title: 'Download Visualization as PNG', tags: [],
+        steps: ['Render any visualization.', 'Click the camera icon in Plotly toolbar.'],
+        expected: 'Current visualization downloaded as PNG to Downloads folder. Image matches on-screen display.' },
+    ]
+  },
+  {
+    id: 'aoi', title: 'AOI (Area of Interest)', icon: '🎯',
+    tests: [
+      { id: 'TC-AOI-01', title: 'Draw Rectangle AOI', tags: [],
+        precondition: 'Stimulus Image displayed.',
+        steps: ['Select rectangle draw tool from Plotly toolbar.', 'Click and drag to draw rectangle on stimulus.'],
+        expected: 'Rectangular AOI drawn. AOI badge increments (e.g., "AOIs: 1"). Semi-transparent colored fill.' },
+      { id: 'TC-AOI-02', title: 'Default Draw Tool is Rectangle', tags: [],
+        steps: ['Switch to Stimulus Image view.', 'Observe which draw tool is active by default.'],
+        expected: 'Rectangle draw tool selected by default (not free-form lasso).' },
+      { id: 'TC-AOI-03', title: 'Multiple Non-Overlapping AOIs', tags: [],
+        steps: ['Draw AOI #1 in top-left corner.', 'Draw AOI #2 in bottom-right (not overlapping).'],
+        expected: 'Both created. Badge shows "2". Each has different color.' },
+      { id: 'TC-AOI-04', title: 'Overlapping AOI Rejection', tags: ['validation'],
+        steps: ['Draw AOI #1 in center.', 'Draw AOI #2 overlapping with #1.'],
+        expected: 'Error message. Overlapping AOI discarded. Count does NOT increment.' },
+      { id: 'TC-AOI-05', title: 'Clear All AOIs', tags: [],
+        steps: ['Draw 3 AOIs.', 'Click red "Clear AOIs" button.'],
+        expected: 'All AOIs removed. Badge resets to "0". AOI-dependent plots show empty state.' },
+      { id: 'TC-AOI-06', title: 'AOIs Shared Between Panels', tags: [],
+        steps: ['Draw 2 AOIs in left panel (Stimulus Image).', 'Set right panel to Scarf Plot.'],
+        expected: 'Right panel uses same AOIs. Colors and regions match.' },
+      { id: 'TC-AOI-07', title: 'AOIs Persist Across Viz Switches', tags: [],
+        steps: ['Draw 2 AOIs on Stimulus Image.', 'Switch left to Attention Map.', 'Switch back to Stimulus Image.'],
+        expected: 'AOIs still visible. Badge still shows "2".' },
+    ]
+  },
+  {
+    id: 'dual', title: 'Dual-Panel & Layout', icon: '📐',
+    tests: [
+      { id: 'TC-DUAL-01', title: 'Independent Viz Selection', tags: [],
+        steps: ['Left: Scanpath Overlay.', 'Right: Attention Map.'],
+        expected: 'Both render independently and simultaneously.' },
+      { id: 'TC-DUAL-02', title: 'Independent Participant Selection', tags: [],
+        steps: ['Select participant A in left panel.', 'Select participants B and C in right panel.'],
+        expected: 'Left shows A only. Right shows aggregate of B and C.' },
+      { id: 'TC-DUAL-03', title: 'Panel Resize Divider', tags: ['UX'],
+        steps: ['Hover over vertical divider.', 'Click and drag to resize.'],
+        expected: 'Left expands/shrinks accordingly. Visualizations re-render to fit.' },
+      { id: 'TC-DUAL-04', title: 'Same Viz, Different Participants', tags: [],
+        steps: ['Both panels: Scanpath Overlay.', 'Different participants in each.'],
+        expected: 'Side-by-side comparison of two scanpaths on same stimulus.' },
+    ]
+  },
+  {
+    id: 'security', title: 'Security & Edge Cases', icon: '🔒',
+    tests: [
+      { id: 'TC-SEC-01', title: 'Malicious Filename Upload', tags: ['security'],
+        steps: ['Rename CSV to "../../../etc/passwd.csv".', 'Upload as scanpath.'],
+        expected: 'Filename sanitized. File processed normally. No filesystem access outside upload scope.' },
+      { id: 'TC-SEC-02', title: 'XSS in Filename', tags: ['security'],
+        steps: ['Rename file to: [script]alert(1)[/script].csv', 'Upload it.'],
+        expected: 'Filename sanitized. No JavaScript execution. Safe text in chip.' },
+      { id: 'TC-SEC-03', title: 'No Files Persisted After Refresh', tags: ['security', 'privacy'],
+        steps: ['Upload stimulus + scanpath in My Own Data.', 'Verify display.', 'Refresh page (Cmd+R).'],
+        expected: 'Upload areas empty after refresh. All data was in-memory only. No server files written.' },
+      { id: 'TC-SEC-04', title: 'Empty CSV Upload', tags: ['edge-case'],
+        steps: ['Upload a CSV with only a header row (no data).'],
+        expected: 'Accepted but shows empty/error message for visualizations. No crash.' },
+      { id: 'TC-SEC-05', title: 'CSV with Missing Columns', tags: ['edge-case'],
+        steps: ['Upload CSV with only 1 column.'],
+        expected: 'Column mapper appears. Cannot assign all required mappings. Error on apply.' },
+      { id: 'TC-SEC-06', title: 'No Participants Selected', tags: ['edge-case'],
+        steps: ['Clear participant dropdown.', 'Select Scanpath Overlay.'],
+        expected: 'Message: "Select at least one participant". No crash.' },
+      { id: 'TC-SEC-07', title: 'AOI-Dependent Plot Without AOIs', tags: ['edge-case'],
+        steps: ['Clear AOIs.', 'Select Scarf Plot or Transition Matrix.'],
+        expected: 'Message: "Draw AOI regions first". No crash.' },
+      { id: 'TC-SEC-08', title: 'Co-association with 1 Participant', tags: ['edge-case'],
+        steps: ['Select only 1 participant.', 'Set to Co-association Matrix.'],
+        expected: 'Error: "Select at least 2 participants". No crash.' },
+    ]
+  },
+  {
+    id: 'perf', title: 'Performance', icon: '⚡',
+    tests: [
+      { id: 'TC-PERF-01', title: 'Large Dataset Rendering', tags: [],
+        precondition: 'MIT1003 loaded.',
+        steps: ['Select stimulus with all 15 participants.', 'Select all 15.', 'Select Attention Map.'],
+        expected: 'Heatmap renders within ~10 seconds. No browser freeze.' },
+      { id: 'TC-PERF-02', title: '3D Visualization Interaction', tags: [],
+        steps: ['Render 3D Scanpath with 3 participants.', 'Rapidly rotate and zoom.'],
+        expected: 'Smooth interaction. No major lag or crashes.' },
+      { id: 'TC-PERF-03', title: 'Video Playback Smoothness', tags: ['video'],
+        steps: ['K-Coefficient tab, Synced Video + K-Timeline.', 'Play video for 2+ minutes.'],
+        expected: 'Smooth video. Dot tracks correctly. Scrubber moves without freezing. No memory leak.' },
+      { id: 'TC-PERF-04', title: 'Rapid Visualization Switching', tags: [],
+        steps: ['With data loaded, rapidly switch between all 13 visualization types.'],
+        expected: 'Each renders correctly. No crashes, errors, or stale displays.' },
+    ]
+  },
+];
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'eyeexplore-test-runner';
+let state = loadState();
+let currentFilter = 'all';
+let searchQuery = '';
+let timerInterval = null;
+let timerSeconds = state.timerSeconds || 0;
+let timerRunning = false;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { results: {}, notes: {}, timerSeconds: 0 };
+  } catch { return { results: {}, notes: {}, timerSeconds: 0 }; }
+}
+function saveState() {
+  state.timerSeconds = timerSeconds;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  document.getElementById('last-saved').textContent = 'Auto-saved ' + new Date().toLocaleTimeString();
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════
+function getAllTests() {
+  return TEST_SECTIONS.flatMap(s => s.tests);
+}
+
+function render() {
+  renderSidebar();
+  renderMain();
+  updateStats();
+}
+
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = TEST_SECTIONS.map(s => {
+    const total = s.tests.length;
+    const done = s.tests.filter(t => state.results[t.id]).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    return `<div class="sidebar-section" onclick="scrollToSection('${s.id}')" id="sidebar-${s.id}">
+      <span>${s.icon}</span>
+      <span style="flex:1;font-size:12px;">${s.title}</span>
+      <span class="section-progress">${done}/${total}</span>
+      <div class="section-bar"><div class="section-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMain() {
+  const main = document.getElementById('main-content');
+  let html = '';
+  for (const section of TEST_SECTIONS) {
+    const total = section.tests.length;
+    const done = section.tests.filter(t => state.results[t.id]).length;
+    const visibleTests = section.tests.filter(t => shouldShow(t));
+    if (visibleTests.length === 0 && (searchQuery || currentFilter !== 'all')) continue;
+
+    html += `<div id="section-${section.id}">
+      <div class="section-header">${section.icon} ${section.title} <span class="badge">${done}/${total}</span></div>
+      <p class="section-sub">${total} test case${total > 1 ? 's' : ''}</p>`;
+
+    for (const test of visibleTests) {
+      const status = state.results[test.id] || '';
+      const note = state.notes[test.id] || '';
+      const expanded = false;
+      html += renderTestCard(test, status, note, expanded);
+    }
+    html += '</div>';
+  }
+  main.innerHTML = html;
+}
+
+function renderTestCard(test, status, note, expanded) {
+  const statusClass = status ? `status-${status}` : '';
+  const expandClass = expanded ? 'expanded' : '';
+  return `<div class="test-card ${statusClass} ${expandClass}" id="card-${test.id}">
+    <div class="test-card-header" onclick="toggleCard('${test.id}')">
+      <span class="expand-icon">&#9654;</span>
+      <span class="test-id">${test.id}</span>
+      <span class="test-title">${test.title}</span>
+      <div class="test-tags">
+        ${(test.tags||[]).map(t => `<span class="test-tag ${t.includes('AOI') ? 'aoi' : ''}">${t}</span>`).join('')}
+      </div>
+      <div class="status-btns" onclick="event.stopPropagation()">
+        <button class="status-btn pass-btn ${status==='pass'?'active':''}" onclick="setStatus('${test.id}','pass')">Pass</button>
+        <button class="status-btn fail-btn ${status==='fail'?'active':''}" onclick="setStatus('${test.id}','fail')">Fail</button>
+        <button class="status-btn skip-btn ${status==='skip'?'active':''}" onclick="setStatus('${test.id}','skip')">Skip</button>
+      </div>
+    </div>
+    <div class="test-details">
+      <div class="detail-grid">
+        ${test.precondition ? `<div class="detail-label">Pre-cond</div><div class="detail-value">${test.precondition}</div>` : ''}
+        <div class="detail-label">Steps</div>
+        <div class="detail-value"><ol>${(test.steps||[]).map(s=>`<li>${s}</li>`).join('')}</ol></div>
+        <div class="detail-label">Expected</div>
+        <div class="detail-value">${test.expected||''}</div>
+      </div>
+      <textarea class="notes-field" placeholder="Add notes, defect links, screenshots..." 
+        onchange="setNote('${test.id}', this.value)" 
+        onclick="event.stopPropagation()">${note}</textarea>
+    </div>
+  </div>`;
+}
+
+function shouldShow(test) {
+  const status = state.results[test.id] || '';
+  if (currentFilter === 'untested' && status) return false;
+  if (currentFilter === 'pass' && status !== 'pass') return false;
+  if (currentFilter === 'fail' && status !== 'fail') return false;
+  if (currentFilter === 'skip' && status !== 'skip') return false;
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    const haystack = (test.id + ' ' + test.title + ' ' + (test.tags||[]).join(' ') + ' ' + (test.precondition||'') + ' ' + (test.steps||[]).join(' ') + ' ' + (test.expected||'')).toLowerCase();
+    if (!haystack.includes(q)) return false;
+  }
+  return true;
+}
+
+// ════════════════════════════════════════════════════════════════
+// INTERACTIONS
+// ════════════════════════════════════════════════════════════════
+function setStatus(id, status) {
+  if (state.results[id] === status) {
+    delete state.results[id]; // toggle off
+  } else {
+    state.results[id] = status;
+  }
+  saveState();
+  render();
+}
+
+function setNote(id, note) {
+  state.notes[id] = note;
+  saveState();
+}
+
+function toggleCard(id) {
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.toggle('expanded');
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === f);
+  });
+  renderMain();
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById('section-' + id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.sidebar-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sidebar-' + id)?.classList.add('active');
+}
+
+function updateStats() {
+  const all = getAllTests();
+  let pass = 0, fail = 0, skip = 0;
+  for (const t of all) {
+    const s = state.results[t.id];
+    if (s === 'pass') pass++;
+    else if (s === 'fail') fail++;
+    else if (s === 'skip') skip++;
+  }
+  const untested = all.length - pass - fail - skip;
+  document.getElementById('stat-pass').textContent = pass;
+  document.getElementById('stat-fail').textContent = fail;
+  document.getElementById('stat-skip').textContent = skip;
+  document.getElementById('stat-untested').textContent = untested;
+
+  const pct = all.length ? Math.round((pass + fail + skip) / all.length * 100) : 0;
+  document.getElementById('global-progress-fill').style.width = pct + '%';
+}
+
+// ════════════════════════════════════════════════════════════════
+// TIMER
+// ════════════════════════════════════════════════════════════════
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timer-btn').textContent = 'Resume';
+  } else {
+    timerRunning = true;
+    document.getElementById('timer-btn').textContent = 'Pause';
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      renderTimer();
+    }, 1000);
+  }
+}
+function renderTimer() {
+  const h = String(Math.floor(timerSeconds / 3600)).padStart(2, '0');
+  const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0');
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  document.getElementById('timer').textContent = `${h}:${m}:${s}`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════════════
+function exportJSON() {
+  const all = getAllTests();
+  const report = {
+    project: 'EyeExplore',
+    version: '2.0',
+    exportedAt: new Date().toISOString(),
+    totalTime: formatTime(timerSeconds),
+    summary: {
+      total: all.length,
+      passed: all.filter(t => state.results[t.id] === 'pass').length,
+      failed: all.filter(t => state.results[t.id] === 'fail').length,
+      skipped: all.filter(t => state.results[t.id] === 'skip').length,
+      untested: all.filter(t => !state.results[t.id]).length,
+    },
+    results: all.map(t => ({
+      id: t.id,
+      title: t.title,
+      status: state.results[t.id] || 'untested',
+      notes: state.notes[t.id] || '',
+    }))
+  };
+  downloadFile('EyeExplore_Test_Report.json', JSON.stringify(report, null, 2), 'application/json');
+  showToast('JSON report exported!');
+}
+
+function exportCSV() {
+  const all = getAllTests();
+  let csv = 'Test Case ID,Title,Status,Notes\n';
+  for (const t of all) {
+    const status = state.results[t.id] || 'untested';
+    const notes = (state.notes[t.id] || '').replace(/"/g, '""');
+    csv += `"${t.id}","${t.title}","${status}","${notes}"\n`;
+  }
+  downloadFile('EyeExplore_Test_Results.csv', csv, 'text/csv');
+  showToast('CSV exported!');
+}
+
+function downloadFile(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function formatTime(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h}h ${m}m ${s}s`;
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL test results, notes, and timer? This cannot be undone.')) return;
+  state = { results: {}, notes: {}, timerSeconds: 0 };
+  timerSeconds = 0;
+  saveState();
+  renderTimer();
+  render();
+  showToast('All results reset.');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════════════════════════════
+// SEARCH
+// ════════════════════════════════════════════════════════════════
+document.getElementById('search').addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  renderMain();
+});
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+render();
+renderTimer();
+</script>
+</body>
+</html>
