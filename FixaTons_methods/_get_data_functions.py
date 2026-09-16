@@ -19,117 +19,81 @@ from PIL import Image
 #########################################################################################
 
 def stimulus(DATASET_NAME, STIMULUS_NAME):
-
-    ''' This functions returns the matrix of pixels of a specified stimulus.
-
-        Notice that, of course, both DATASET_NAME and STIMULUS_NAME need
-        to be specified. The latter, must include file extension.
-
-        The returned matrix could be 2- or 3-dimesional. '''
-
-    return cv2.cvtColor(cv2.imread(os.path.join(COLLECTION_PATH, DATASET_NAME, 'STIMULI', STIMULUS_NAME), 1),
-                        cv2.COLOR_BGR2RGB)
+    ''' Returns the matrix of pixels of a specified stimulus (RGB). '''
+    stim_path = os.path.join(COLLECTION_PATH, DATASET_NAME, 'STIMULI', STIMULUS_NAME)
+    img = cv2.imread(stim_path, 1)
+    if img is None:
+        raise FileNotFoundError(f"Could not load stimulus image at {stim_path}")
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
-#########################################################################################
 def stimulus_base64_encoding(DATASET_NAME, STIMULUS_NAME):
-
-    with open(os.path.join(COLLECTION_PATH, DATASET_NAME, 'STIMULI', STIMULUS_NAME), "rb") as image_file:
+    stim_path = os.path.join(COLLECTION_PATH, DATASET_NAME, 'STIMULI', STIMULUS_NAME)
+    with open(stim_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
     return encoded_string
 
-#########################################################################################
 
 def stimulus_size(DATASET_NAME, STIMULUS_NAME):
-
-    ''' This function returns the x and y dimension of the image stimulus.
-    This can be used while setting range of the X and Y axes in plots. '''
-    image = cv2.imread(os.path.join(COLLECTION_PATH, DATASET_NAME, 'STIMULI', STIMULUS_NAME), 1)
-    # print(image.shape[0], image.shape[1], image.shape[2])
+    ''' Returns (width, height) of the image stimulus. '''
+    stim_path = os.path.join(COLLECTION_PATH, DATASET_NAME, 'STIMULI', STIMULUS_NAME)
+    image = cv2.imread(stim_path, 1)
+    if image is None:
+        return 1920, 1080
     return image.shape[1], image.shape[0]
 
 
-#########################################################################################
-
 def fixation_map(DATASET_NAME, STIMULUS_NAME):
-
-    ''' This functions returns the matrix of pixels of the fixation map
-        of a specified stimulus.
-
-        Notice that, of course, both DATASET_NAME and STIMULUS_NAME need
-        to be specified. The latter, must include file extension.
-
-        The returned matrix is a 2-dimesional matrix with 1 on fixated
-        locations and 0 elsewhere. '''
-
+    ''' Returns the binary fixation map matrix of a specified stimulus. '''
     file_name, _ = os.path.splitext(STIMULUS_NAME)
+    fix_dir = os.path.join(COLLECTION_PATH, DATASET_NAME, 'FIXATION_MAPS')
+    if not os.path.exists(fix_dir):
+        raise FileNotFoundError(f"FIXATION_MAPS folder not found in dataset {DATASET_NAME}")
+    files = [f for f in os.listdir(fix_dir) if not f.startswith('.')]
+    if not files:
+        raise FileNotFoundError(f"No fixation maps found in {fix_dir}")
+    
+    # Try exact match or match by basename
+    target_file = None
+    for f in files:
+        if os.path.splitext(f)[0] == file_name:
+            target_file = os.path.join(fix_dir, f)
+            break
+    if not target_file:
+        _, file_extension = os.path.splitext(files[0])
+        target_file = os.path.join(fix_dir, file_name + file_extension)
 
-    # File extensions of the fixation maps may be different between
-    # datasets, so we need a check at this point.
-    # All the files in the same folder have the same extension.
-
-    _, file_extension = os.path.splitext(
-        os.listdir(
-            os.path.join(
-                COLLECTION_PATH,
-                DATASET_NAME,
-                'FIXATION_MAPS')
-        )[0])
-
-    # Get the matrix
-
-    fixation_map = cv2.imread(
-        os.path.join(COLLECTION_PATH,
-                     DATASET_NAME,
-                     'FIXATION_MAPS',
-                     file_name+file_extension
-                     ), 1)
-
+    fixation_map = cv2.imread(target_file, 1)
+    if fixation_map is None:
+        raise FileNotFoundError(f"Could not load fixation map at {target_file}")
     fixation_map = fixation_map[:, :, 0]
-
     fixation_map[fixation_map > 0] = 1
-
     return fixation_map
 
 
-#########################################################################################
-
 def saliency_map(DATASET_NAME, STIMULUS_NAME):
-
-    ''' This functions returns the matrix of pixels of the saliency map
-        of a specified stimulus. Saliency map has been obtained by convolving
-        the fixation map with a proper gaussian filter (corresponding to
-        one degree of visual angle).
-
-        Notice that, of course, both DATASET_NAME and STIMULUS_NAME need
-        to be specified. The latter, must include file extension.
-
-        The returned matrix is a 2-dimesional matrix. Values are in the
-        range [0,1]. '''
-
+    ''' Returns the saliency map matrix of a specified stimulus. '''
     file_name, _ = os.path.splitext(STIMULUS_NAME)
+    sal_dir = os.path.join(COLLECTION_PATH, DATASET_NAME, 'SALIENCY_MAPS')
+    if not os.path.exists(sal_dir):
+        raise FileNotFoundError(f"SALIENCY_MAPS folder not found in dataset {DATASET_NAME}")
+    files = [f for f in os.listdir(sal_dir) if not f.startswith('.')]
+    if not files:
+        raise FileNotFoundError(f"No saliency maps found in {sal_dir}")
+        
+    target_file = None
+    for f in files:
+        if os.path.splitext(f)[0] == file_name:
+            target_file = os.path.join(sal_dir, f)
+            break
+    if not target_file:
+        _, file_extension = os.path.splitext(files[0])
+        target_file = os.path.join(sal_dir, file_name + file_extension)
 
-    # File extensions of the saliency maps may be different between
-    # datasets, so we need a check at this point.
-    # All the files in the same folder have the same extension.
-
-    _, file_extension = os.path.splitext(
-                            os.listdir(
-                                os.path.join(
-                                    COLLECTION_PATH,
-                                    DATASET_NAME,
-                                    'SALIENCY_MAPS')
-                            )[0]
-    )
-
-    # Get the matrix
-    return cv2.imread(
-        os.path.join(
-            COLLECTION_PATH,
-            DATASET_NAME,
-            'SALIENCY_MAPS',
-            file_name + file_extension
-        ), 0)
+    img = cv2.imread(target_file, 0)
+    if img is None:
+        raise FileNotFoundError(f"Could not load saliency map at {target_file}")
+    return img
 
 #########################################################################################
 
@@ -215,7 +179,7 @@ def scanpath_aoi(DATASET_NAME, STIMULUS_NAME, SUBJECTS, AOI=[], AOI_TYPE="rect")
                     SUBJECT_NAME), 'r')
 
             scanpath_file_lines = scanpath_file.readlines()
-            print(scanpath_file_lines)
+            scanpath_file.close()
 
             scanpath = np.zeros((len(scanpath_file_lines), 5))
 

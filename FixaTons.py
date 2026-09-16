@@ -1,17 +1,16 @@
-#########################################################################################
-
 import os
-
-COLLECTION_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    'FixaTons'
-)
 
 COLLECTION_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     'data',
     'FixaTons'
 )
+
+# Fallback to local FixaTons folder if data/FixaTons does not exist
+if not os.path.exists(COLLECTION_PATH):
+    alt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'FixaTons')
+    if os.path.exists(alt_path):
+        COLLECTION_PATH = alt_path
 
 '''
 This file includes tools to an easy use of the collection of datasets. 

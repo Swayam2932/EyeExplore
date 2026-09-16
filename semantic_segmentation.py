@@ -184,8 +184,8 @@ def build_segmentation_figure(image_rgb: np.ndarray, segments: list):
     overlay = np.clip(overlay, 0, 255).astype(np.uint8)
 
     fig = px.imshow(overlay)
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
+    fig.update_xaxes(title="Screen Width (pixels)")
+    fig.update_yaxes(title="Screen Height (pixels)")
 
     # ---- draw contours for the largest segments ----
     for seg in segments[:20]:     # contours only for top-20 largest

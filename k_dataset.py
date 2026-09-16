@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # Constants based on the implementation plan
-K_VIDEO_ROOT = "/Users/test/Desktop/EyeExplore/fixationsexport"
+K_VIDEO_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixationsexport")
 K_DATA_ROOT = os.path.join(K_VIDEO_ROOT, "participant_fixations")
 STIMULUS_WIDTH = 1920
 STIMULUS_HEIGHT = 1080

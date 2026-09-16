@@ -60,7 +60,126 @@ PLOT_TYPES = [
 
 DROPDOWN_OPTIONS = [{'label': pt['label'], 'value': pt['value']} for pt in PLOT_TYPES]
 
-datasets_list = [d for d in FixaTons.info.datasets() if not d.startswith('.')]
+PLOT_DETAILS = {
+    'stimulus': {
+        'title': 'Stimulus Image',
+        'icon': 'bi-image',
+        'description': 'A static view of the original stimulus image or interface presented to participants during the eye-tracking experiment. It serves as the baseline for understanding what participants were viewing and for defining Areas of Interest (AOIs).',
+        'how_to_use': 'Use this baseline view to inspect the visual stimulus without gaze overlays and use the drawing tools on the plot modebar to draw manual AOIs.'
+    },
+    'scanpath': {
+        'title': 'Scanpath Animation',
+        'icon': 'bi-geo-alt-fill',
+        'description': "A dynamic, video-like playback of a participant's gaze over the stimulus image. It replays the sequence of fixations (where the eyes stop) and saccades (eye movements) in real-time or adjusted speeds.",
+        'how_to_use': 'Use the playback controls (play, pause, timeline slider) to observe the precise, moment-by-moment visual journey of a user. It is highly useful for qualitative analysis and presenting user behavior to stakeholders.'
+    },
+    'scanpath_overlay': {
+        'title': 'Scanpath Overlay',
+        'icon': 'bi-share-fill',
+        'description': "A static visualization of a participant's entire gaze path layered directly over the stimulus. Fixations are typically represented as circles (often sized by duration), and saccades are the lines connecting them.",
+        'how_to_use': 'This plot helps you quickly understand the overall spatial distribution and sequential flow of visual attention for a single participant without needing to watch an animation.'
+    },
+    'attention': {
+        'title': 'Attention Map (Heatmap)',
+        'icon': 'bi-fire',
+        'description': 'A color-coded overlay that aggregates gaze data to show where visual attention was most concentrated. "Hotter" colors (like red or yellow) indicate areas with higher fixation counts or longer gaze durations.',
+        'how_to_use': 'Heatmaps are excellent for quick, at-a-glance insights into which elements of your interface or image are attracting the most attention across your users.'
+    },
+    'scarf': {
+        'title': 'Scarf Plot',
+        'icon': 'bi-bar-chart-steps',
+        'description': 'A color-coded, horizontal timeline that shows which Area of Interest (AOI) a participant was looking at over a given period.',
+        'how_to_use': 'Use this to compare temporal gaze patterns across multiple participants. It allows you to see at a glance if users follow similar visual sequences or if certain groups ignore specific AOIs entirely.'
+    },
+    'aoi_timeline': {
+        'title': 'AOI Timeline',
+        'icon': 'bi-graph-up',
+        'description': "A line graph tracking a subject's gaze state within predefined Areas of Interest (AOIs) as time progresses.",
+        'how_to_use': 'Ideal for analyzing the sequence, frequency, and duration of visits to specific areas for individual subjects, helping determine how long it takes users to find target information.'
+    },
+    '3d_scanpath': {
+        'title': '3D Scanpath',
+        'icon': 'bi-box',
+        'description': 'A three-dimensional representation of gaze data. The base is the stimulus image, and the gaze points are plotted in 3D space, incorporating time as the vertical dimension.',
+        'how_to_use': 'Rotate and zoom the 3D plot to visualize the spatiotemporal evolution of gaze. It helps identify clusters of fixations in both space and time simultaneously, offering a deeper perspective than standard 2D overlays.'
+    },
+    '3d_scatter': {
+        'title': '3D Scatter',
+        'icon': 'bi-diamond-fill',
+        'description': 'A three-dimensional spatial-temporal scatter visualization of gaze fixations over the stimulus base plane across time.',
+        'how_to_use': 'Rotate and zoom the 3D scatter to identify clusters of fixations in both space and time simultaneously, comparing density and temporal progressions across subjects.'
+    },
+    'coassociation': {
+        'title': 'Co-association Matrix',
+        'icon': 'bi-grid-3x3-gap-fill',
+        'description': 'A matrix used to analyze the statistical relationships and transition frequencies between different viewing behaviors or Areas of Interest (AOIs).',
+        'how_to_use': 'Use this to quantify visual flow. If you want to know how often users look from the "Navigation Bar" directly to the "Add to Cart" button, the transition/co-association matrix provides these exact probabilities.'
+    },
+    'detection': {
+        'title': 'Object Detection (Semantic Segmentation)',
+        'icon': 'bi-bounding-box',
+        'description': 'An automated AI tool (using models like SAM - Segment Anything Model and YOLO) that detects and outlines distinct objects or visual elements within your stimulus image.',
+        'how_to_use': 'Use this feature to automatically generate precise, shape-accurate Areas of Interest (AOIs) based on visual elements on the screen, saving you from having to draw manual bounding boxes.'
+    },
+    'transition': {
+        'title': 'Transition Matrix',
+        'icon': 'bi-arrow-left-right',
+        'description': 'A transition probability matrix quantifying direct gaze shifts and transition probabilities from one AOI to another.',
+        'how_to_use': 'Use this matrix to analyze visual paths and verify whether users naturally navigate between key interface elements in the intended sequential order.'
+    },
+    'k_scanpath': {
+        'title': 'K-Colored Scanpath',
+        'icon': 'bi-palette-fill',
+        'description': 'A scanpath overlaid on the stimulus, but the fixations and lines are color-coded based on the K-Coefficient (Ambient vs. Focal attention).',
+        'how_to_use': 'This helps you evaluate cognitive processing strategies. You can see where on the screen users were just skimming (ambient) versus where they were deeply reading or processing information (focal).'
+    },
+    'k_timeline': {
+        'title': 'K-Coefficient Timeline',
+        'icon': 'bi-activity',
+        'description': "A time-series graph tracking the K-Coefficient to show fluctuations in a participant's depth of visual processing over the duration of the study.",
+        'how_to_use': "Use this timeline to track a user's cognitive state over time. For example, you might notice a user starts in a long 'Ambient Search' phase before finally settling into 'Focal Inspection' once they find what they are looking for."
+    },
+    'k_heatmap': {
+        'title': 'Focal/Ambient Heatmap',
+        'icon': 'bi-thermometer-half',
+        'description': 'A heatmap that specifically filters spatial fixations based on their cognitive state (K-coefficient). It isolates either Ambient Fixations (where K < 0) or Focal Fixations (where K > 0).',
+        'how_to_use': 'Use this to isolate behaviors. By viewing only ambient heatmaps, you can see which parts of your design encourage skimming. By viewing focal heatmaps, you can see which areas capture deep attention and reading.'
+    }
+}
+
+
+def render_plot_modal_content(plot_type, panel='left'):
+    info = PLOT_DETAILS.get(plot_type)
+    if not info:
+        return html.Div("Information not available for this plot type.")
+
+    accent_color = '#3f51b5' if panel == 'left' else '#e53935'
+
+    elements = [
+        html.Div([
+            html.H6("Overview & Representation", style={'fontWeight': '700', 'color': accent_color, 'fontSize': '14px', 'marginBottom': '6px'}),
+            html.P(info['description'], style={'fontSize': '13.5px', 'color': '#444', 'lineHeight': '1.6', 'marginBottom': '14px'}),
+        ])
+    ]
+
+    if 'how_to_use' in info and info['how_to_use']:
+        elements.append(
+            html.Div([
+                html.H6("How to Use", style={'fontWeight': '700', 'color': '#2e7d32', 'fontSize': '14px', 'marginBottom': '6px'}),
+                html.P(info['how_to_use'], style={'fontSize': '13px', 'color': '#333', 'lineHeight': '1.6', 'margin': '0'}),
+            ], style={
+                'backgroundColor': '#f8faf9',
+                'padding': '12px 16px',
+                'borderRadius': '8px',
+                'border': '1px solid #e0ede5',
+                'borderLeft': '4px solid #2e7d32'
+            })
+        )
+
+    return elements
+
+
+datasets_list = FixaTons.info.datasets()
 
 AOI = []
 AOI_type = "rect"
@@ -169,6 +288,8 @@ def build_detection_figure(image_rgb, detections):
             xanchor='left',
             yanchor='bottom'
         )
+    fig.update_xaxes(title="Screen Width (pixels)")
+    fig.update_yaxes(title="Screen Height (pixels)")
     if detections:
         fig.update_layout(title=f'Detected {len(detections)} objects', title_x=0.5)
     else:
@@ -226,8 +347,8 @@ def make_stimulus_figure(db_name, stimulus, aoi_list, aoi_type_val):
     if img.ndim == 3 and img.shape[2] == 4:
         img = img[..., :3]
     fig = px.imshow(img)
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
+    fig.update_xaxes(title="Screen Width (pixels)")
+    fig.update_yaxes(title="Screen Height (pixels)")
     fig.update_layout(
         dragmode="drawrect",
         newshape=dict(fillcolor="cyan", opacity=0.3, line=dict(color="darkblue", width=8)),
@@ -275,8 +396,8 @@ def make_scanpath_figure(db_name, stimulus, participants, aoi_list, aoi_type_val
     fig.add_layout_image(source=image_url, xref="x", yref="y", x=0, y=image_height,
                          sizex=image_width, sizey=image_height,
                          sizing="stretch", opacity=1, layer="below")
-    fig.update_xaxes(visible=False, constrain="domain")
-    fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1, constrain="domain")
+    fig.update_xaxes(title="Screen Width (pixels)", constrain="domain")
+    fig.update_yaxes(title="Screen Height (pixels)", scaleanchor="x", scaleratio=1, constrain="domain")
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=0, r=0, t=35, b=10),
@@ -348,8 +469,8 @@ def make_scanpath_overlay_figure(db_name, stimulus, participant, aoi_list, aoi_t
         )
     )
 
-    fig.update_xaxes(visible=False, range=[0, image_width], constrain="domain")
-    fig.update_yaxes(visible=False, range=[image_height, 0], scaleanchor="x", scaleratio=1, constrain="domain")
+    fig.update_xaxes(title="Screen Width (pixels)", range=[0, image_width], constrain="domain")
+    fig.update_yaxes(title="Screen Height (pixels)", range=[image_height, 0], scaleanchor="x", scaleratio=1, constrain="domain")
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=0, r=0, t=35, b=0),
@@ -385,8 +506,8 @@ def make_attention_figure(db_name, stimulus, participants=None):
         else:
             attention_img = img
     fig = px.imshow(attention_img)
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False)
+    fig.update_xaxes(title="Screen Width (pixels)")
+    fig.update_yaxes(title="Screen Height (pixels)")
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(l=0, r=0, t=35, b=0),
@@ -405,8 +526,10 @@ def make_scarf_figure(db_name, stimulus, participants, aoi_list, aoi_type_val):
 
     fig = px.bar(df, x="TIME_FROM", y="SUBJECT", color="AOI",
                  color_discrete_sequence=px.colors.qualitative.Vivid,
-                 hover_data=["SUBJECT", "AOI"], orientation='h')
-    fig.update_yaxes(categoryorder='category ascending')
+                 hover_data=["SUBJECT", "AOI"], orientation='h',
+                 labels={"TIME_FROM": "Time (ms)", "SUBJECT": "Subject / Participant ID", "AOI": "AOI"})
+    fig.update_xaxes(title="Time (ms)")
+    fig.update_yaxes(title="Subject / Participant ID", categoryorder='category ascending')
     fig.update_layout(
         margin=dict(l=0, r=0, t=35, b=0),
         title="Scarf Plot",
@@ -422,7 +545,10 @@ def make_timeline_figure(db_name, stimulus, participants, aoi_list, aoi_type_val
     df["ELAPSED_TIME"] = df["TIME_TO"] - df["TIME_FROM"]
     df["AOI"] = df["AOI"].astype(str)
 
-    fig = px.line(df, x='TIME_FROM', y='AOI', color='SUBJECT')
+    fig = px.line(df, x='TIME_FROM', y='AOI', color='SUBJECT',
+                  labels={'TIME_FROM': 'Time (ms)', 'AOI': 'Area of Interest (AOI)', 'SUBJECT': 'Subject'})
+    fig.update_xaxes(title="Time (ms)")
+    fig.update_yaxes(title="Area of Interest (AOI)")
     fig.update_layout(
         margin=dict(l=0, r=0, t=35, b=0),
         title="AOI Timeline",
@@ -441,11 +567,17 @@ def make_3d_scanpath_figure(db_name, stimulus, participants, aoi_list, aoi_type_
     eight_bit_img = Image.fromarray(stimulus_image).convert('P', palette='WEB', dither=None)
     z = np.zeros(stimulus_image.shape[:2])
 
-    fig = px.line_3d(df, x="X", y="Y", z="TIME_FROM", color='SUBJECT')
+    fig = px.line_3d(df, x="X", y="Y", z="TIME_FROM", color='SUBJECT',
+                     labels={'X': 'Screen Width (px)', 'Y': 'Screen Height (px)', 'TIME_FROM': 'Time (ms)'})
     fig.add_surface(z=z, surfacecolor=np.flipud(eight_bit_img), showscale=False)
     camera = dict(up=dict(x=0, y=0, z=1), center=dict(x=0, y=0, z=0),
                   eye=dict(x=-1.25, y=-1.25, z=0.5))
     fig.update_layout(
+        scene=dict(
+            xaxis_title="Screen Width (px)",
+            yaxis_title="Screen Height (px)",
+            zaxis_title="Time (ms)"
+        ),
         scene_camera=camera,
         margin=dict(l=0, r=0, t=35, b=0),
         title="3D Scanpath",
@@ -465,11 +597,17 @@ def make_3d_scatter_figure(db_name, stimulus, participants, aoi_list, aoi_type_v
     z = np.zeros(stimulus_image.shape[:2])
 
     fig = px.scatter_3d(df, x='X', y='Y', z='TIME_FROM',
-                        color='SUBJECT', size='ELAPSED_TIME', size_max=18)
+                        color='SUBJECT', size='ELAPSED_TIME', size_max=18,
+                        labels={'X': 'Screen Width (px)', 'Y': 'Screen Height (px)', 'TIME_FROM': 'Time (ms)'})
     fig.add_surface(z=z, surfacecolor=np.flipud(eight_bit_img), showscale=False)
     camera = dict(up=dict(x=0, y=0, z=1), center=dict(x=0, y=0, z=0),
                   eye=dict(x=-1.25, y=-1.25, z=0.5))
     fig.update_layout(
+        scene=dict(
+            xaxis_title="Screen Width (px)",
+            yaxis_title="Screen Height (px)",
+            zaxis_title="Time (ms)"
+        ),
         scene_camera=camera,
         margin=dict(l=0, r=0, t=35, b=0),
         title="3D Scatter",
@@ -488,11 +626,13 @@ def make_coassociation_figure(db_name, stimulus, participants):
     if len(coa_rows) > 0:
         fig = px.imshow(
             np.array(coa_matrix),
-            labels=dict(x="Subject", y="Subject"),
+            labels=dict(x="Subject / State", y="Subject / State"),
             x=coa_cols, y=coa_rows,
             color_continuous_scale='balance',
             range_color=[0, 1]
         )
+        fig.update_xaxes(title="Subject / State")
+        fig.update_yaxes(title="Subject / State")
     else:
         fig = empty_figure("No matching participants found in dataset")
 
@@ -544,8 +684,10 @@ def make_transition_figure(db_name, stimulus, aoi_list, aoi_type_val):
     labels = df_transition.columns.values
 
     fig = px.imshow(z_mat, text_auto=True, x=labels, y=labels,
-                    labels=dict(x="AOI", y="AOI"), range_color=[0, 1],
+                    labels=dict(x="Target AOI (Destination)", y="Source AOI (Origin)"), range_color=[0, 1],
                     color_continuous_scale='balance')
+    fig.update_xaxes(title="Target AOI (Destination)")
+    fig.update_yaxes(title="Source AOI (Origin)")
     fig.update_layout(
         xaxis=dict(tickmode='linear', tick0=0, dtick=1),
         yaxis=dict(tickmode='linear', tick0=0, dtick=1),
@@ -731,8 +873,8 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
         if plot_type == 'stimulus':
             if img_array is not None:
                 fig = px.imshow(img_array)
-                fig.update_xaxes(visible=False)
-                fig.update_yaxes(visible=False)
+                fig.update_xaxes(title="Screen Width (pixels)")
+                fig.update_yaxes(title="Screen Height (pixels)")
             elif image_url:
                 fig = go.Figure()
                 fig.add_layout_image(
@@ -741,8 +883,8 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                     sizex=image_width, sizey=image_height,
                     sizing="stretch", layer="below"
                 )
-                fig.update_xaxes(visible=False, range=[0, image_width])
-                fig.update_yaxes(visible=False, range=[image_height, 0], scaleanchor="x", scaleratio=1)
+                fig.update_xaxes(title="Screen Width (pixels)", range=[0, image_width])
+                fig.update_yaxes(title="Screen Height (pixels)", range=[image_height, 0], scaleanchor="x", scaleratio=1)
             else:
                 return empty_figure("No image available")
                 
@@ -814,8 +956,8 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                                  x=0, y=image_height,
                                  sizex=image_width, sizey=image_height,
                                  sizing="stretch", opacity=1, layer="below")
-            fig.update_xaxes(visible=False, constrain="domain")
-            fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1, constrain="domain")
+            fig.update_xaxes(title="Screen Width (pixels)", constrain="domain")
+            fig.update_yaxes(title="Screen Height (pixels)", scaleanchor="x", scaleratio=1, constrain="domain")
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=0, r=0, t=35, b=10),
@@ -862,8 +1004,8 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 marker=dict(size=marker_sizes, color="red", opacity=0.6,
                             line=dict(color="black", width=2)),
                 showlegend=False))
-            fig.update_xaxes(visible=False, range=[0, image_width], constrain="domain")
-            fig.update_yaxes(visible=False, range=[image_height, 0],
+            fig.update_xaxes(title="Screen Width (pixels)", range=[0, image_width], constrain="domain")
+            fig.update_yaxes(title="Screen Height (pixels)", range=[image_height, 0],
                              scaleanchor="x", scaleratio=1, constrain="domain")
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
@@ -886,8 +1028,8 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 return empty_figure("No data available for attention map")
             attention_img = sc.compute_custom_attention_map(img_array, all_dfs)
             fig = px.imshow(attention_img)
-            fig.update_xaxes(visible=False)
-            fig.update_yaxes(visible=False)
+            fig.update_xaxes(title="Screen Width (pixels)")
+            fig.update_yaxes(title="Screen Height (pixels)")
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 margin=dict(l=0, r=0, t=35, b=0),
@@ -909,8 +1051,10 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
             combined["AOI"] = combined["AOI"].astype(str)
             fig = px.bar(combined, x="TIME_FROM", y="SUBJECT", color="AOI",
                          color_discrete_sequence=px.colors.qualitative.Vivid,
-                         hover_data=["SUBJECT", "AOI"], orientation='h')
-            fig.update_yaxes(categoryorder='category ascending')
+                         hover_data=["SUBJECT", "AOI"], orientation='h',
+                         labels={"TIME_FROM": "Time (ms)", "SUBJECT": "Subject / Participant ID", "AOI": "AOI"})
+            fig.update_xaxes(title="Time (ms)")
+            fig.update_yaxes(title="Subject / Participant ID", categoryorder='category ascending')
             fig.update_layout(
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="Scarf Plot", title_x=0.5, title_font_size=13,
@@ -928,7 +1072,10 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
             combined = pd.concat(dfs, ignore_index=True)
             combined = sc.assign_aoi(combined, aoi_list, aoi_type_val)
             combined["AOI"] = combined["AOI"].astype(str)
-            fig = px.line(combined, x='TIME_FROM', y='AOI', color='SUBJECT')
+            fig = px.line(combined, x='TIME_FROM', y='AOI', color='SUBJECT',
+                          labels={'TIME_FROM': 'Time (ms)', 'AOI': 'Area of Interest (AOI)', 'SUBJECT': 'Subject'})
+            fig.update_xaxes(title="Time (ms)")
+            fig.update_yaxes(title="Area of Interest (AOI)")
             fig.update_layout(
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="AOI Timeline", title_x=0.5, title_font_size=13,
@@ -950,13 +1097,19 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
                 'P', palette='WEB', dither=None)
             z = np.zeros(img_array.shape[:2])
             fig = px.line_3d(combined, x="X", y="Y", z="TIME_FROM",
-                             color='SUBJECT')
+                             color='SUBJECT',
+                             labels={'X': 'Screen Width (px)', 'Y': 'Screen Height (px)', 'TIME_FROM': 'Time (ms)'})
             fig.add_surface(z=z, surfacecolor=np.flipud(eight_bit_img),
                             showscale=False)
             camera = dict(up=dict(x=0, y=0, z=1),
                           center=dict(x=0, y=0, z=0),
                           eye=dict(x=-1.25, y=-1.25, z=0.5))
             fig.update_layout(
+                scene=dict(
+                    xaxis_title="Screen Width (px)",
+                    yaxis_title="Screen Height (px)",
+                    zaxis_title="Time (ms)"
+                ),
                 scene_camera=camera,
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="3D Scanpath", title_x=0.5, title_font_size=13,
@@ -979,13 +1132,19 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
             z = np.zeros(img_array.shape[:2])
             fig = px.scatter_3d(combined, x='X', y='Y', z='TIME_FROM',
                                 color='SUBJECT', size='ELAPSED_TIME',
-                                size_max=18)
+                                size_max=18,
+                                labels={'X': 'Screen Width (px)', 'Y': 'Screen Height (px)', 'TIME_FROM': 'Time (ms)'})
             fig.add_surface(z=z, surfacecolor=np.flipud(eight_bit_img),
                             showscale=False)
             camera = dict(up=dict(x=0, y=0, z=1),
                           center=dict(x=0, y=0, z=0),
                           eye=dict(x=-1.25, y=-1.25, z=0.5))
             fig.update_layout(
+                scene=dict(
+                    xaxis_title="Screen Width (px)",
+                    yaxis_title="Screen Height (px)",
+                    zaxis_title="Time (ms)"
+                ),
                 scene_camera=camera,
                 margin=dict(l=0, r=0, t=35, b=0),
                 title="3D Scatter", title_x=0.5, title_font_size=13,
@@ -1042,8 +1201,10 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
             z_mat = np.array(df_transition)
             labels = [str(c) for c in df_transition.columns]
             fig = px.imshow(z_mat, text_auto=True, x=labels, y=labels,
-                            labels=dict(x="AOI", y="AOI"), range_color=[0, 1],
+                            labels=dict(x="Target AOI (Destination)", y="Source AOI (Origin)"), range_color=[0, 1],
                             color_continuous_scale='balance')
+            fig.update_xaxes(title="Target AOI (Destination)")
+            fig.update_yaxes(title="Source AOI (Origin)")
             fig.update_layout(
                 xaxis=dict(tickmode='linear', tick0=0, dtick=1),
                 yaxis=dict(tickmode='linear', tick0=0, dtick=1),
@@ -1134,6 +1295,20 @@ app = dash.Dash(
 app.layout = html.Div([
     # Injected CSS
 
+    # Info Modals for Left and Right Panels
+    dbc.Modal([
+        dbc.ModalHeader([
+            dbc.ModalTitle(id='left-modal-title', style={'fontWeight': '700', 'fontSize': '16px', 'color': '#1a237e'}),
+        ], close_button=True),
+        dbc.ModalBody(id='left-modal-body', style={'fontSize': '13.5px', 'lineHeight': '1.6', 'color': '#333', 'padding': '20px'}),
+    ], id='left-info-modal', is_open=False, size='lg', centered=True),
+
+    dbc.Modal([
+        dbc.ModalHeader([
+            dbc.ModalTitle(id='right-modal-title', style={'fontWeight': '700', 'fontSize': '16px', 'color': '#b71c1c'}),
+        ], close_button=True),
+        dbc.ModalBody(id='right-modal-body', style={'fontSize': '13.5px', 'lineHeight': '1.6', 'color': '#333', 'padding': '20px'}),
+    ], id='right-info-modal', is_open=False, size='lg', centered=True),
 
     # Data stores
     dcc.Store(id='aoi-store', data=0),
@@ -1151,9 +1326,11 @@ app.layout = html.Div([
                 'fontSize': '20px', 'fontWeight': '700', 'letterSpacing': '0.5px'
             }),
         ], style={'display': 'flex', 'alignItems': 'center'}),
-        html.Span('Visual Eyetracking Dashboard', style={
-            'fontSize': '13px', 'opacity': '0.85', 'letterSpacing': '0.5px',
-        }),
+        html.Div([
+            html.Span('Visual Eyetracking Dashboard', style={
+                'fontSize': '13px', 'opacity': '0.85', 'letterSpacing': '0.5px',
+            }),
+        ], style={'display': 'flex', 'alignItems': 'center'}),
     ], style={
         'background': 'linear-gradient(135deg, #3f51b5, #1a237e)',
         'color': 'white',
@@ -1276,6 +1453,13 @@ app.layout = html.Div([
                 html.Div([
                     # Panel header
                     html.Div([
+                        html.Button(
+                            html.I(className="bi bi-info-circle-fill"),
+                            id='btn-left-info',
+                            className='btn-panel-info btn-panel-info-left',
+                            title='Plot Information & Guide',
+                            n_clicks=0,
+                        ),
                         html.Span('LEFT PANEL', style={'flexShrink': '0'}),
                         dcc.Dropdown(
                             id='left-plot-type',
@@ -1376,6 +1560,13 @@ app.layout = html.Div([
                 html.Div([
                     # Panel header
                     html.Div([
+                        html.Button(
+                            html.I(className="bi bi-info-circle-fill"),
+                            id='btn-right-info',
+                            className='btn-panel-info btn-panel-info-right',
+                            title='Plot Information & Guide',
+                            n_clicks=0,
+                        ),
                         html.Span('RIGHT PANEL', style={'flexShrink': '0'}),
                         dcc.Dropdown(
                             id='right-plot-type',
@@ -1441,41 +1632,47 @@ app.layout = html.Div([
 # CALLBACKS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── 1. Dataset → Image dropdown options ──
+# ── 1. Dataset → Image dropdown options & auto-selection ──
 @app.callback(
     Output('image-dropdown', 'options'),
+    Output('image-dropdown', 'value'),
     Input('ddDB', 'value'),
     State('data-source-mode', 'data'),
 )
 def update_image_dd(value, mode):
     if mode == 'custom' or not value:
-        return []
+        return [], None
     try:
         img_list = FixaTons.info.stimuli(value)
-        return [{'label': i, 'value': i} for i in img_list] if img_list else []
+        if not img_list:
+            return [], None
+        return [{'label': i, 'value': i} for i in img_list], img_list[0]
     except Exception:
-        return []
+        return [], None
 
 
-# ── 2. Image → Participants dropdown options (both panels) ──
+# ── 2. Image → Participants dropdown options & auto-selection (both panels) ──
 @app.callback(
     Output('ddParticipants-left', 'options', allow_duplicate=True),
+    Output('ddParticipants-left', 'value', allow_duplicate=True),
     Output('ddParticipants-right', 'options', allow_duplicate=True),
+    Output('ddParticipants-right', 'value', allow_duplicate=True),
     [Input('image-dropdown', 'value'), Input('ddDB', 'value')],
     State('data-source-mode', 'data'),
     prevent_initial_call=True
 )
 def update_participants_options(stimulus, db, mode):
     if mode == 'custom':
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
     if not db or not stimulus:
-        return [], []
+        return [], [], [], []
     try:
         participants_list = FixaTons.info.subjects(db, stimulus)
         opts = [{'label': p, 'value': p} for p in participants_list] if participants_list else []
-        return opts, opts
+        initial_val = participants_list[:5] if participants_list else []
+        return opts, initial_val, opts, initial_val
     except Exception:
-        return [], []
+        return [], [], [], []
 
 
 # ── 3. Left icon click → Left plot type dropdown ──
@@ -1988,6 +2185,63 @@ def sync_right_timeline_with_video(left_val):
     if left_val == 'k_video':
         return 'k_timeline'
     raise dash.exceptions.PreventUpdate
+
+# ── 9.1 Dynamic Plot Info & Modal Callbacks ──
+@app.callback(
+    Output('left-info-modal', 'is_open'),
+    Input('btn-left-info', 'n_clicks'),
+    State('left-info-modal', 'is_open'),
+    prevent_initial_call=True
+)
+def toggle_left_modal(n_clicks, is_open):
+    if n_clicks:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output('right-info-modal', 'is_open'),
+    Input('btn-right-info', 'n_clicks'),
+    State('right-info-modal', 'is_open'),
+    prevent_initial_call=True
+)
+def toggle_right_modal(n_clicks, is_open):
+    if n_clicks:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output('left-modal-title', 'children'),
+    Output('left-modal-body', 'children'),
+    Input('left-plot-type', 'value')
+)
+def update_left_modal_content(plot_type):
+    info = PLOT_DETAILS.get(plot_type, {})
+    title = html.Span([
+        html.I(className=f"bi {info.get('icon', 'bi-info-circle')} me-2", style={'color': '#3f51b5'}),
+        info.get('title', 'Plot Information')
+    ])
+    return title, render_plot_modal_content(plot_type, 'left')
+
+
+@app.callback(
+    Output('right-modal-title', 'children'),
+    Output('right-modal-body', 'children'),
+    Input('right-plot-type', 'value')
+)
+def update_right_modal_content(plot_type):
+    info = PLOT_DETAILS.get(plot_type, {})
+    title = html.Span([
+        html.I(className=f"bi {info.get('icon', 'bi-info-circle')} me-2", style={'color': '#e53935'}),
+        info.get('title', 'Plot Information')
+    ])
+    return title, render_plot_modal_content(plot_type, 'right')
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RUN
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @app.callback(
     Output('k-video-container', 'style'),

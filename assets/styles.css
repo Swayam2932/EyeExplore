@@ -351,3 +351,39 @@ body {
     box-shadow: 0 4px 14px rgba(46,125,50,0.35);
     transform: translateY(-1px);
 }
+
+/* ---- Panel Info Button ---- */
+.btn-panel-info {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-right: 2px;
+    line-height: 1;
+}
+.btn-panel-info-left {
+    color: #3f51b5;
+}
+.btn-panel-info-left:hover {
+    background-color: #dbe0fc;
+    color: #1a237e;
+    transform: scale(1.1);
+    box-shadow: 0 2px 6px rgba(63, 81, 181, 0.2);
+}
+.btn-panel-info-right {
+    color: #e53935;
+}
+.btn-panel-info-right:hover {
+    background-color: #ffd8d8;
+    color: #b71c1c;
+    transform: scale(1.1);
+    box-shadow: 0 2px 6px rgba(229, 57, 53, 0.2);
+}
+
+

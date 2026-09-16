@@ -150,8 +150,8 @@ def make_k_colored_scanpath(participants, aoi_list, aoi_type_val, custom_dfs=Non
             )
         )
         
-    fig.update_xaxes(showgrid=False, range=[0, w], constrain="domain")
-    fig.update_yaxes(showgrid=False, range=[h, 0], scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(title="Screen Width (pixels)", showgrid=False, range=[0, w], constrain="domain")
+    fig.update_yaxes(title="Screen Height (pixels)", showgrid=False, range=[h, 0], scaleanchor="x", scaleratio=1)
     fig.update_layout(
         plot_bgcolor='white',
         paper_bgcolor='white',
@@ -218,8 +218,8 @@ def make_k_heatmap_figure(participants, k_mode='focal', custom_dfs=None, custom_
             )
         )
         
-    fig.update_xaxes(showgrid=False, range=[0, w], constrain="domain")
-    fig.update_yaxes(showgrid=False, range=[h, 0], scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(title="Screen Width (pixels)", showgrid=False, range=[0, w], constrain="domain")
+    fig.update_yaxes(title="Screen Height (pixels)", showgrid=False, range=[h, 0], scaleanchor="x", scaleratio=1)
     
     fig.update_layout(
         plot_bgcolor='white',
