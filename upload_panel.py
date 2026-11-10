@@ -43,23 +43,23 @@ MAX_SCANPATH_SIZE_MB = 5
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def make_mode_toggle():
-    """Segmented control: Built-in Datasets / My Own Data / K-Coefficient Data."""
+    """Segmented control: Images / Custom / Video."""
     return html.Div([
         html.Div([
             html.Button(
-                '📊 Built-in Datasets',
+                '📊 Images',
                 id='btn-mode-builtin',
                 n_clicks=0,
                 className='mode-toggle-btn mode-toggle-active',
             ),
             html.Button(
-                '📁 My Own Data',
+                '📁 Custom',
                 id='btn-mode-custom',
                 n_clicks=0,
                 className='mode-toggle-btn',
             ),
             html.Button(
-                '🧠 K-Coefficient Dataset',
+                '🎥 Video',
                 id='btn-mode-kdataset',
                 n_clicks=0,
                 className='mode-toggle-btn',
@@ -358,7 +358,7 @@ def register_callbacks(app):
                 'attention',
             )
         elif trigger == 'btn-mode-kdataset':
-            # Switching TO K-Coefficient Dataset mode
+            # Switching TO Video mode
             import k_dataset
             participant_options = [{'label': str(p), 'value': str(p)} for p in k_dataset.K_PARTICIPANTS]
             participant_values = [str(k_dataset.K_PARTICIPANTS[0])] if k_dataset.K_PARTICIPANTS else []

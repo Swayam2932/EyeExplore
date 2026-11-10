@@ -11,9 +11,9 @@ A web-based interactive dashboard for visualizing and analyzing eye-tracking dat
 - [Features](#features)
 - [Getting Started](#getting-started)
 - [Dashboard Modes](#dashboard-modes)
-  - [Built-in Datasets](#1-built-in-datasets)
-  - [My Own Data](#2-my-own-data)
-  - [K-Coefficient Dataset](#3-k-coefficient-dataset)
+  - [Images](#1-images)
+  - [Custom](#2-custom)
+  - [Video](#3-video)
 - [Visualization Types](#visualization-types)
 - [Areas of Interest (AOIs)](#areas-of-interest-aois)
 - [Dual-Panel Comparison](#dual-panel-comparison)
@@ -26,11 +26,10 @@ A web-based interactive dashboard for visualizing and analyzing eye-tracking dat
 ## Features
 
 - **Dual-panel layout** — side-by-side visualization comparison with independent controls per panel
-- **13 visualization types** — from basic stimulus display to 3D scanpaths and K-Coefficient timelines
-- **Three data modes** — built-in research datasets, custom data uploads, and K-Coefficient video analysis
+- **12 visualization types** — from basic stimulus display to 3D scanpaths and K-Coefficient timelines
+- **Three data modes** — images (built-in research datasets), custom data uploads, and video analysis
 - **Interactive AOI tools** — draw rectangle regions directly on stimuli with overlap detection
 - **Real-time video sync** — synced video playback with fixation dot overlay and K-Coefficient timeline scrubber
-- **Object detection** — YOLO-powered object detection overlay on stimulus images
 - **In-memory processing** — no files are persisted on the server; all data is cleared on refresh
 - **Auto-scaling** — automatically detects percentage-based coordinates and scales to pixel dimensions
 - **Export** — download any visualization as PNG via the Plotly toolbar
@@ -61,13 +60,13 @@ python app.py
 
 Open your browser and navigate to **http://localhost:8050**
 
-The dashboard loads with the **Built-in Datasets** tab active by default.
+The dashboard loads with the **Images** tab active by default.
 
 ---
 
 ## Dashboard Modes
 
-### 1. Built-in Datasets
+### 1. Images
 
 Pre-loaded eye-tracking research datasets ready to explore.
 
@@ -84,7 +83,7 @@ Pre-loaded eye-tracking research datasets ready to explore.
 
 ---
 
-### 2. My Own Data
+### 2. Custom
 
 Upload your own stimulus images/videos and scanpath data files for analysis.
 
@@ -125,7 +124,7 @@ If your scanpath file uses percentage coordinates (0–100 range) instead of pix
 
 ---
 
-### 3. K-Coefficient Dataset
+### 3. Video
 
 Specialized mode for ambient/focal attention analysis using video stimuli with K-Coefficient-based gaze classification.
 
@@ -169,10 +168,9 @@ Each participant's CSV (`{id}-fixations_with_K.csv`) contains:
 | 7 | **3D Scanpath** | 3D trajectory where X, Y = gaze coordinates and Z = time | 1+ participants |
 | 8 | **3D Scatter** | 3D scatter plot of fixation points at (X, Y, Time) with size encoding duration | 1+ participants |
 | 9 | **Co-association Matrix** | Heatmap of gaze pattern similarity between participant pairs | 2+ participants |
-| 10 | **Object Detection** | YOLO object detection overlay with bounding boxes and confidence scores | None |
-| 11 | **Transition Matrix** | Frequency matrix of gaze transitions between AOI regions | AOIs |
-| 12 | **Synced Video + K-Timeline** | Video with real-time fixation dot overlay synced to K-Coefficient chart | 1+ participants (K-data) |
-| 13 | **K-Coefficient Timeline** | Line chart of K-Coefficient values over time with focal/ambient phase shading | 1+ participants (K-data) |
+| 10 | **Transition Matrix** | Frequency matrix of gaze transitions between AOI regions | AOIs |
+| 11 | **Synced Video + K-Timeline** | Video with real-time fixation dot overlay synced to K-Coefficient chart | 1+ participants (K-data) |
+| 12 | **K-Coefficient Timeline** | Line chart of K-Coefficient values over time with focal/ambient phase shading | 1+ participants (K-data) |
 
 ---
 

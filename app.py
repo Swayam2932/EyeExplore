@@ -28,8 +28,6 @@ import skimage.io as sio
 from plotly.subplots import make_subplots
 from skimage import data, draw
 from scipy import ndimage
-from ultralytics import YOLO
-import semantic_segmentation as sem_seg
 import upload_panel
 import scanpath_converter as sc
 import k_dataset
@@ -38,9 +36,6 @@ import k_visualizations
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS & CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
-
-MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
-DETECTION_MODEL = None
 
 PLOT_TYPES = [
     {'value': 'stimulus',      'label': 'Stimulus Image',        'icon': 'bi-image'},
@@ -52,7 +47,6 @@ PLOT_TYPES = [
     {'value': '3d_scanpath',   'label': '3D Scanpath',           'icon': 'bi-box'},
     {'value': '3d_scatter',    'label': '3D Scatter',            'icon': 'bi-diamond-fill'},
     {'value': 'coassociation', 'label': 'Co-association Matrix', 'icon': 'bi-grid-3x3-gap-fill'},
-    {'value': 'detection',     'label': 'Object Detection',      'icon': 'bi-bounding-box'},
     {'value': 'transition',    'label': 'Transition Matrix',     'icon': 'bi-arrow-left-right'},
     {'value': 'k_video',       'label': 'Synced Video + K-Timeline', 'icon': 'bi-play-circle-fill'},
     {'value': 'k_timeline',    'label': 'K-Coefficient Timeline','icon': 'bi-activity'}
@@ -114,12 +108,6 @@ PLOT_DETAILS = {
         'icon': 'bi-grid-3x3-gap-fill',
         'description': 'A matrix used to analyze the statistical relationships and transition frequencies between different viewing behaviors or Areas of Interest (AOIs).',
         'how_to_use': 'Use this to quantify visual flow. If you want to know how often users look from the "Navigation Bar" directly to the "Add to Cart" button, the transition/co-association matrix provides these exact probabilities.'
-    },
-    'detection': {
-        'title': 'Object Detection (Semantic Segmentation)',
-        'icon': 'bi-bounding-box',
-        'description': 'An automated AI tool (using models like SAM - Segment Anything Model and YOLO) that detects and outlines distinct objects or visual elements within your stimulus image.',
-        'how_to_use': 'Use this feature to automatically generate precise, shape-accurate Areas of Interest (AOIs) based on visual elements on the screen, saving you from having to draw manual bounding boxes.'
     },
     'transition': {
         'title': 'Transition Matrix',
@@ -185,117 +173,8 @@ AOI = []
 AOI_type = "rect"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MODEL LOADING & UTILITY FUNCTIONS
+# UTILITY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
-
-def load_detection_model():
-    global DETECTION_MODEL
-    if DETECTION_MODEL is not None:
-        return DETECTION_MODEL
-
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    model_path = os.path.join(MODEL_DIR, 'yolov8n.pt')
-    DETECTION_MODEL = YOLO(model_path)
-    return DETECTION_MODEL
-
-
-def suppress_overlapping_boxes(detections, iou_threshold=0.3, io_min_threshold=0.5):
-    # Sort detections by confidence descending
-    sorted_dets = sorted(detections, key=lambda d: d['confidence'], reverse=True)
-    accepted = []
-
-    for det in sorted_dets:
-        box = det['box']
-        overlap = False
-        for acc in accepted:
-            acc_box = acc['box']
-
-            # Intersection coordinates
-            x1 = max(box[0], acc_box[0])
-            y1 = max(box[1], acc_box[1])
-            x2 = min(box[0] + box[2], acc_box[0] + acc_box[2])
-            y2 = min(box[1] + box[3], acc_box[1] + acc_box[3])
-
-            inter_w = max(0, x2 - x1)
-            inter_h = max(0, y2 - y1)
-            inter_area = inter_w * inter_h
-
-            if inter_area > 0:
-                area_box = box[2] * box[3]
-                area_acc = acc_box[2] * acc_box[3]
-                union_area = area_box + area_acc - inter_area
-
-                iou = inter_area / union_area if union_area > 0 else 0
-                io_min = inter_area / min(area_box, area_acc) if min(area_box, area_acc) > 0 else 0
-
-                if iou > iou_threshold or io_min > io_min_threshold:
-                    overlap = True
-                    break
-
-        if not overlap:
-            accepted.append(det)
-
-    return accepted
-
-
-def detect_objects(image, confidence_threshold=0.4):
-    try:
-        model = load_detection_model()
-    except Exception as exc:
-        print(f'Failed to load detection model: {exc}')
-        return []
-
-    if image is None or image.size == 0:
-        return []
-
-    results = model(image, conf=confidence_threshold, verbose=False)
-
-    detections = []
-    if len(results) > 0:
-        result = results[0]
-        for box in result.boxes:
-            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-            conf = float(box.conf[0].cpu().numpy())
-            cls = int(box.cls[0].cpu().numpy())
-            label = model.names[cls]
-            w = x2 - x1
-            h = y2 - y1
-            detections.append({
-                'label': label,
-                'confidence': conf,
-                'box': [int(x1), int(y1), int(w), int(h)]
-            })
-
-    return suppress_overlapping_boxes(detections)
-
-
-def build_detection_figure(image_rgb, detections):
-    fig = px.imshow(image_rgb)
-    for det in detections:
-        x, y, w, h = det['box']
-        fig.add_shape(
-            type='rect',
-            x0=x, y0=y, x1=x + w, y1=y + h,
-            line=dict(color='red', width=3)
-        )
-        fig.add_annotation(
-            x=x, y=max(y - 5, 0),
-            text=f" <b>{det['label']} {det['confidence']:.2f}</b> ",
-            showarrow=False,
-            font=dict(color='white', size=12),
-            bgcolor='red',
-            opacity=0.85,
-            xanchor='left',
-            yanchor='bottom'
-        )
-    fig.update_xaxes(title="Screen Width (pixels)")
-    fig.update_yaxes(title="Screen Height (pixels)")
-    if detections:
-        fig.update_layout(title=f'Detected {len(detections)} objects', title_x=0.5)
-    else:
-        fig.update_layout(title='No objects detected', title_x=0.5)
-    return fig
-
 
 def path_to_indices(path):
     """From SVG path to numpy array of coordinates, each row being a (row, col) point
@@ -645,38 +524,6 @@ def make_coassociation_figure(db_name, stimulus, participants):
     return fig
 
 
-def make_detection_figure_wrapper(db_name, stimulus):
-    """Object detection (YOLO) with fallback to semantic segmentation (SAM)."""
-    img = np.array(FixaTons.get.stimulus(db_name, stimulus))
-    if img.ndim == 3 and img.shape[2] == 4:
-        img = img[..., :3]
-    bgr_img = img.copy()
-    if img.ndim == 3:
-        try:
-            bgr_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        except Exception:
-            bgr_img = img.copy()
-    elif img.ndim == 2:
-        bgr_img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-
-    detections = detect_objects(bgr_img)
-
-    if len(detections) > 0:
-        fig = build_detection_figure(img, detections)
-        fig.update_layout(title=f'Detected {len(detections)} object(s)', title_x=0.5)
-    else:
-        print(f'[app] No YOLO detections for {stimulus}; running semantic segmentation …')
-        try:
-            segments = sem_seg.run_segmentation(bgr_img, MODEL_DIR)
-            fig = sem_seg.build_segmentation_figure(img, segments)
-        except Exception as exc:
-            print(f'[app] Segmentation error: {exc}')
-            fig = empty_figure("Segmentation unavailable")
-
-    fig.update_layout(margin=dict(l=0, r=0, t=40, b=0))
-    return fig
-
-
 def make_transition_figure(db_name, stimulus, aoi_list, aoi_type_val):
     """AOI transition probability matrix."""
     df_transition = FixaTons.stats.AOI_transition_matrix(db_name, stimulus, aoi_list, aoi_type_val)
@@ -745,9 +592,6 @@ def generate_figure(plot_type, db_name, stimulus, participants, aoi_list, aoi_ty
             if not participants or len(participants) < 2:
                 return empty_figure("Select at least 2 participants")
             return make_coassociation_figure(db_name, stimulus, participants)
-
-        elif plot_type == 'detection':
-            return make_detection_figure_wrapper(db_name, stimulus)
 
         elif plot_type == 'transition':
             if not aoi_list:
@@ -1156,30 +1000,6 @@ def generate_figure_custom(plot_type, custom_image_store, custom_scanpaths_store
         elif plot_type == 'coassociation':
             return empty_figure("Co-association Matrix is not available "
                                 "in custom data mode")
-
-        # ── Object Detection ──
-        elif plot_type == 'detection':
-            if img_array.ndim == 3 and img_array.shape[2] == 4:
-                img_array = img_array[..., :3]
-            bgr_img = img_array.copy()
-            if img_array.ndim == 3:
-                try:
-                    bgr_img = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-                except Exception:
-                    pass
-            elif img_array.ndim == 2:
-                bgr_img = cv2.cvtColor(img_array, cv2.COLOR_GRAY2BGR)
-            detections = detect_objects(bgr_img)
-            if len(detections) > 0:
-                fig = build_detection_figure(img_array, detections)
-            else:
-                try:
-                    segments = sem_seg.run_segmentation(bgr_img, MODEL_DIR)
-                    fig = sem_seg.build_segmentation_figure(img_array, segments)
-                except Exception:
-                    fig = empty_figure("No objects detected / segmentation unavailable")
-            fig.update_layout(margin=dict(l=0, r=0, t=40, b=0))
-            return fig
 
         # ── Transition Matrix ──
         elif plot_type == 'transition':
