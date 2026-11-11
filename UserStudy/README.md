@@ -50,11 +50,14 @@ the corresponding task is recorded as `not_scored`; no answer is guessed.
 Option D indicates a technical unavailability issue and should be reviewed
 separately from ordinary incorrect answers.
 
-The task timer starts when a question appears and stops when its answer is
-submitted. Ease ratings occur afterward and are not part of task time. The
-optional written review is a separate final step outside the four-question
-questionnaire. After the responses are saved, the participant session is
-cleared and the portal returns to the login page for the next participant.
+The overall 25-minute countdown starts when the participant clicks **Start**
+and stays visible during tasks, visualization ratings, and optional review.
+At zero it alerts the participant and recruiter without submitting or
+discarding an unfinished answer. Each task is separately timed from question
+display until answer submission; ease ratings are excluded from task time. The
+optional written review is a separate final step outside the questionnaire.
+After responses are saved, the participant session is cleared and the portal
+returns to the login page for the next participant.
 
 ## Configure the server
 
@@ -80,11 +83,15 @@ Use HTTPS in production and set `STUDY_COOKIE_SECURE=1`; for local HTTP, use
 ephemeral disks, use a persistent mounted volume for `USER_STUDY_DATA_DIR`.
 Keep the secret key stable across restarts so participants can resume.
 
-After each completion, the server emails a cumulative CSV of all completed
-sessions. It contains participant, cohort, and set identifiers; task responses,
-scoring status, per-visualization ratings, question start/end times and
-durations; and any optional review. SQLite remains the durable source. Missing
-or failed email configuration does not discard saved responses.
+After each completion, the server refreshes a cumulative CSV of all completed
+sessions at `UserStudy/data/eyeexplore_user_study_results.csv` by default. The
+CSV is saved beside the SQLite database, so changing `USER_STUDY_DATA_DIR` or
+`USER_STUDY_DB` changes its location too. The file contains participant,
+cohort, and set identifiers; task responses, scoring status,
+per-visualization ratings, question start/end times and durations; and any
+optional review. When SMTP is configured, the same CSV is also emailed after
+each completion. SQLite remains the durable source. Missing or failed email
+configuration does not prevent the local CSV save.
 
 ## Start
 

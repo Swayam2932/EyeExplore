@@ -43,6 +43,7 @@ blueprint = Blueprint(
 )
 _database_ready = False
 _database_init_lock = threading.Lock()
+STUDY_DURATION_SECONDS = 25 * 60
 
 
 def _database_path() -> Path:
@@ -102,6 +103,26 @@ def _ensure_database() -> None:
             if not _database_ready:
                 _init_database()
                 _database_ready = True
+
+
+@blueprint.app_context_processor
+def _study_timer_context() -> dict:
+    study_session = _participant_session()
+    if (
+        study_session is None
+        or study_session["status"] not in {"in_progress", "question_rating", "review"}
+        or not study_session["test_started_at"]
+    ):
+        return {"study_timer_deadline_ms": None, "study_duration_minutes": 25}
+    try:
+        started_at = datetime.fromisoformat(study_session["test_started_at"])
+    except ValueError:
+        return {"study_timer_deadline_ms": None, "study_duration_minutes": 25}
+    deadline = (started_at.timestamp() + STUDY_DURATION_SECONDS) * 1000
+    return {
+        "study_timer_deadline_ms": int(deadline),
+        "study_duration_minutes": 25,
+    }
 
 
 def _utc_now() -> str:
@@ -198,15 +219,7 @@ def _require_session() -> sqlite3.Row:
     return study_session
 
 
-def _send_results_email() -> str:
-    recipient = os.environ.get("STUDY_RESULTS_EMAIL", "").strip()
-    host = os.environ.get("STUDY_SMTP_HOST", "").strip()
-    username = os.environ.get("STUDY_SMTP_USER", "").strip()
-    password = os.environ.get("STUDY_SMTP_PASSWORD", "")
-    sender = os.environ.get("STUDY_SMTP_FROM", username).strip()
-    if not all((recipient, host, username, password, sender)):
-        return "not_configured"
-
+def _build_results_csv() -> tuple[bytes, int]:
     rows = _completed_sessions()
     output = io.StringIO(newline="")
     writer = csv.writer(output)
@@ -266,8 +279,36 @@ def _send_results_email() -> str:
         values.extend([_csv_safe(row["review"] or "")])
         writer.writerow(values)
 
+    return output.getvalue().encode("utf-8-sig"), len(rows)
+
+
+def _local_results_csv_path() -> Path:
+    return _database_path().parent / "eyeexplore_user_study_results.csv"
+
+
+def _save_local_results(csv_bytes: bytes) -> Path:
+    destination = _local_results_csv_path()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(f".{destination.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_bytes(csv_bytes)
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return destination
+
+
+def _send_results_email(csv_bytes: bytes, completed_count: int) -> str:
+    recipient = os.environ.get("STUDY_RESULTS_EMAIL", "").strip()
+    host = os.environ.get("STUDY_SMTP_HOST", "").strip()
+    username = os.environ.get("STUDY_SMTP_USER", "").strip()
+    password = os.environ.get("STUDY_SMTP_PASSWORD", "")
+    sender = os.environ.get("STUDY_SMTP_FROM", username).strip()
+    if not all((recipient, host, username, password, sender)):
+        return "not_configured"
+
     message = EmailMessage()
-    message["Subject"] = f"EyeExplore user study results ({len(rows)} completed)"
+    message["Subject"] = f"EyeExplore user study results ({completed_count} completed)"
     message["From"] = sender
     message["To"] = recipient
     message.set_content(
@@ -275,7 +316,7 @@ def _send_results_email() -> str:
         "user-study sessions. The source records are also stored in the study database."
     )
     message.add_attachment(
-        output.getvalue().encode("utf-8-sig"),
+        csv_bytes,
         maintype="text",
         subtype="csv",
         filename="eyeexplore_user_study_results.csv",
@@ -367,14 +408,21 @@ def login():
 
     completed_status = request.args.get("completed", "")
     completed_messages = {
-        "sent": "Responses saved and the results email was sent. The next participant may enter their ID and access code.",
-        "failed": "Responses saved, but the results email could not be sent. Please notify the study leader. The next participant may continue.",
-        "not_configured": "Responses saved. Results email is not configured on this server. The next participant may continue.",
+        "sent": "Responses saved. The results email was sent.",
+        "failed": "Responses saved, but the results email could not be sent. Please notify the study leader.",
+        "not_configured": "Responses saved. Results email is not configured on this server.",
     }
+    completed_message = completed_messages.get(completed_status)
+    if completed_message and request.args.get("local_csv") == "1":
+        completed_message += f" A cumulative CSV is also saved at {_local_results_csv_path()}."
+    elif completed_message and request.args.get("local_csv") == "0":
+        completed_message += " The response database is saved, but the cumulative local CSV could not be updated."
+    if completed_message:
+        completed_message += " The next participant may enter their ID and access code."
     return render_template(
         "login.html",
         error=error,
-        completed_message=completed_messages.get(completed_status),
+        completed_message=completed_message,
         csrf_token=_csrf_token(),
     )
 
@@ -575,18 +623,36 @@ def review():
                     WHERE id = ?""",
                     (review_text, _utc_now(), study_session["id"]),
                 )
+            csv_saved = False
+            email_status = "failed"
             try:
-                email_status = _send_results_email()
+                csv_bytes, completed_count = _build_results_csv()
             except Exception:
-                current_app.logger.exception("Unable to build the user-study results email")
-                email_status = "failed"
+                current_app.logger.exception("Unable to build the local user-study CSV")
+            else:
+                try:
+                    _save_local_results(csv_bytes)
+                    csv_saved = True
+                except Exception:
+                    current_app.logger.exception("Unable to save the local user-study CSV")
+                try:
+                    email_status = _send_results_email(csv_bytes, completed_count)
+                except Exception:
+                    current_app.logger.exception("Unable to send the user-study results email")
+                    email_status = "failed"
             with _database() as db:
                 db.execute(
                     "UPDATE study_sessions SET email_status = ? WHERE id = ?",
                     (email_status, study_session["id"]),
                 )
             session.clear()
-            return redirect(url_for("user_study.login", completed=email_status))
+            return redirect(
+                url_for(
+                    "user_study.login",
+                    completed=email_status,
+                    local_csv="1" if csv_saved else "0",
+                )
+            )
 
     return render_template("review.html", error=error, csrf_token=_csrf_token())
 

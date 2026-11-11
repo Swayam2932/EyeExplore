@@ -2,8 +2,6 @@ export const navLinks = [
   { href: "/", label: "Home" },
   { href: "/docs", label: "Docs" },
   { href: "/tutorials", label: "Tutorials" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/support", label: "Support" },
 ] as const;
 
 export const docsSections = [

@@ -29,6 +29,14 @@ body {
   color: white;
   box-shadow: 0 8px 24px rgb(6 16 31 / 12%);
 }
+.study-timer { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 8px 16px; background: #e8f6fb; color: var(--navy); box-shadow: 0 5px 16px rgb(15 35 64 / 10%); }
+.timer-label { font-size: 13px; font-weight: 750; }
+.study-timer strong { min-width: 76px; padding: 5px 10px; border-radius: 8px; background: var(--navy); color: white; text-align: center; font-variant-numeric: tabular-nums; font-size: 18px; }
+.timer-message { color: #8a3412; font-size: 13px; font-weight: 700; }
+.timer-warning { background: #fff7df; }
+.timer-warning strong { background: #b45309; }
+.timer-expired { background: #fff0f0; }
+.timer-expired strong { background: #b42318; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-size: 18px; font-weight: 750; }
 .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: white; background: linear-gradient(135deg, #fbbf24, var(--orange), var(--red)); font-size: 22px; }
 .study-label { color: #d5e4f5; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
@@ -85,6 +93,8 @@ textarea { resize: vertical; min-height: 140px; }
 
 @media (max-width: 620px) {
   .topbar { height: 62px; }
+  .study-timer { flex-wrap: wrap; gap: 7px 10px; }
+  .timer-message { flex-basis: 100%; text-align: center; }
   .page-wrap { width: min(100% - 20px, 880px); margin: 22px auto; }
   .card { border-radius: 18px; }
   .rating-scale { gap: 3px; }

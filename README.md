@@ -87,7 +87,9 @@ Set 2 within their access-code group. Before collecting responses, fill the
 study values and answer keys in `UserStudy/study_setup.json`. See
 [UserStudy/README.md](UserStudy/README.md) for the questionnaire setup, stored
 data, email configuration, and deployment details. The study saves responses
-and question timing in SQLite and can email a cumulative CSV after completion.
+and question timing in SQLite, shows a 25-minute study countdown, and saves a
+cumulative CSV at `UserStudy/data/eyeexplore_user_study_results.csv` by default.
+When SMTP is configured, it emails that same CSV after completion.
 
 The server needs Python 3.10+, Node.js/npm, and installed
 `eyeexplore/node_modules` dependencies. On the server, create a Python virtual
