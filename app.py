@@ -1107,9 +1107,17 @@ GRAPH_CONFIG = {
 
 BOOTSTRAP_ICONS_CSS = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
 
+dashboard_prefix = os.environ.get("DASHBOARD_PREFIX", "").strip()
+if dashboard_prefix and not dashboard_prefix.startswith("/"):
+    dashboard_prefix = "/" + dashboard_prefix
+if dashboard_prefix:
+    dashboard_prefix = dashboard_prefix.rstrip("/") + "/"
+
 app = dash.Dash(
     external_stylesheets=[dbc.themes.BOOTSTRAP, BOOTSTRAP_ICONS_CSS],
-    suppress_callback_exceptions=True
+    suppress_callback_exceptions=True,
+    requests_pathname_prefix=dashboard_prefix or "/",
+    routes_pathname_prefix="/",
 )
 
 app.layout = html.Div([
@@ -2098,7 +2106,7 @@ def update_k_video_src(k_vid_pid, participants, mode, custom_video):
             import k_dataset
             path = k_dataset.get_k_video_path(pid)
             if path:
-                return f'/k_video/{pid}'
+                return f'{dashboard_prefix}k_video/{pid}'
     return ''
 
 # ── 11. Populate fixation data store for JS sync ──
@@ -2173,17 +2181,25 @@ def populate_fixation_data(participants, plot_type, mode, custom_scanpaths, cust
         return None
 
 
-if __name__ == '__main__':
-    from flask import send_file
-    import k_dataset
-    import os
-    
-    @app.server.route('/k_video/<pid>')
-    def serve_k_video(pid):
-        video_path = k_dataset.get_k_video_path(pid)
-        if video_path and os.path.exists(video_path):
-            return send_file(os.path.abspath(video_path))
-        return "Not found", 404
+from flask import send_file
 
-    upload_panel.register_callbacks(app)
-    app.run(debug=True, host='0.0.0.0', port=8050)
+
+@app.server.route('/k_video/<pid>')
+def serve_k_video(pid):
+    video_path = k_dataset.get_k_video_path(pid)
+    if video_path and os.path.exists(video_path):
+        return send_file(os.path.abspath(video_path))
+    return "Not found", 404
+
+
+# Register callbacks and routes on import as well so the unified server can
+# host Dash through its WSGI server instead of requiring a second public port.
+upload_panel.register_callbacks(app)
+
+
+if __name__ == '__main__':
+    app.run(
+        debug=os.environ.get("DASH_DEBUG", "0") == "1",
+        host=os.environ.get("DASH_HOST", "127.0.0.1"),
+        port=int(os.environ.get("DASH_PORT", "8050")),
+    )

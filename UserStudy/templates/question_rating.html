@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Rate the views · EyeExplore Study{% endblock %}
+{% block content %}
+<section class="card wide-card">
+  <div class="question-meta">
+    <p class="eyebrow">Question {{ question_number }} of {{ question_count }} · separate rating step</p>
+    <span class="progress-label">{{ question_number }} / {{ question_count }}</span>
+  </div>
+  <div class="progress-track"><span style="width: {{ (question_number / question_count * 100)|round|int }}%"></span></div>
+  <h1 class="question-title">Rate the visualization{% if question.visualizations|length > 1 %}s{% endif %} you used</h1>
+  <p class="lead">Rate ease of use for this task. Your answer and task time have already been saved.</p>
+  {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% for visualization in question.visualizations %}
+    {% set view_index = loop.index0 %}
+    <fieldset class="rating-fieldset visualization-rating">
+      <legend>{{ visualization }}</legend>
+      <div class="rating-scale">
+        {% for item in rating_scale %}
+        <label title="{{ item.label }}"><input type="radio" name="rating_{{ view_index }}" value="{{ item.value }}" required><span>{{ item.value }}</span></label>
+        {% endfor %}
+      </div>
+      <div class="scale-descriptions">
+        {% for item in rating_scale %}<span><b>{{ item.value }}</b> {{ item.label }}</span>{% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+    <div class="action-row"><button class="primary-button" type="submit">Save rating and continue</button></div>
+  </form>
+</section>
+{% endblock %}

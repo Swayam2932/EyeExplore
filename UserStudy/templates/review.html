@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Final Review · EyeExplore Study{% endblock %}
+{% block content %}
+<section class="card wide-card">
+  <p class="eyebrow">Optional final step · outside the questionnaire</p>
+  <h1>Would you like to leave a review?</h1>
+  <p class="lead">The four questionnaire tasks and visualization ratings are complete. You may leave an optional review, or continue without one.</p>
+  {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="review">Your review (optional)</label>
+    <textarea id="review" name="review" rows="6" maxlength="5000" placeholder="What worked well? What was confusing or difficult?"></textarea>
+    <div class="notice">Your questionnaire answers, per-question times, and visualization ratings have already been saved. If you write a review, it will be saved when you continue. Please wait for the saved confirmation.</div>
+    <button class="primary-button" type="submit">Finish and save</button>
+    <button class="secondary-button" type="submit" name="skip_review" value="1">Skip review and finish</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Study Login · EyeExplore{% endblock %}
+{% block content %}
+<section class="card login-card">
+  <p class="eyebrow">Secure participant access</p>
+  <h1>Enter the user study</h1>
+  <p class="lead">Enter the participant ID assigned by the recruiter and the access code for your user group.</p>
+  {% if completed_message %}<div class="notice" role="status">{{ completed_message }}</div>{% endif %}
+  {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="form-stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="participant_id">Participant ID</label>
+    <input id="participant_id" name="participant_id" inputmode="numeric" autocomplete="off" required>
+    <label for="password">Access code</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button class="primary-button" type="submit">Continue</button>
+  </form>
+  <p class="small-note">The access code identifies your user group. Your incremental participant ID assigns Set 1 for odd numbers or Set 2 for even numbers and labels your saved responses. The ID is not an access code.</p>
+</section>
+{% endblock %}

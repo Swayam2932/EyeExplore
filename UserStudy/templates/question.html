@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Question {{ question_number }} of {{ question_count }} · EyeExplore Study{% endblock %}
+{% block content %}
+<section class="card wide-card">
+  <div class="question-meta">
+    <p class="eyebrow">Question {{ question_number }} of {{ question_count }}</p>
+    <span class="progress-label">{{ question_number }} / {{ question_count }}</span>
+  </div>
+  <div class="progress-track"><span style="width: {{ (question_number / question_count * 100)|round|int }}%"></span></div>
+  <h1 class="question-title">{{ question.title }}</h1>
+  <p class="question-prompt">{{ question.prompt }}</p>
+  <h2 class="steps-heading">Task instructions</h2>
+  <ol class="task-steps">
+    {% for step in question.steps %}<li>{{ step }}</li>{% endfor %}
+  </ol>
+  {% if error %}<div class="alert" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="form-stack question-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="question_id" value="{{ question.id }}">
+    <fieldset class="options-fieldset">
+      <legend>{% if question.multiple %}Select all answers that apply{% else %}Select one answer{% endif %}</legend>
+      <div class="options-list">
+        {% for option in question.options %}
+        <label class="option-card">
+          <input type="{{ 'checkbox' if question.multiple else 'radio' }}" name="answer" value="{{ option.id }}" required>
+          <span class="option-key">{{ option.id }}</span>
+          <span>{{ option.text }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="action-row">
+      <button class="primary-button" type="submit">Submit answer</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

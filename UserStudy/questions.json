@@ -1,0 +1,592 @@
+{
+  "rating_scale": [
+    {
+      "value": 1,
+      "label": "Very difficult"
+    },
+    {
+      "value": 2,
+      "label": "Difficult"
+    },
+    {
+      "value": 3,
+      "label": "Quite difficult"
+    },
+    {
+      "value": 4,
+      "label": "Slightly difficult"
+    },
+    {
+      "value": 5,
+      "label": "Neutral"
+    },
+    {
+      "value": 6,
+      "label": "Slightly easy"
+    },
+    {
+      "value": 7,
+      "label": "Somewhat easy"
+    },
+    {
+      "value": 8,
+      "label": "Easy"
+    },
+    {
+      "value": 9,
+      "label": "Very easy"
+    },
+    {
+      "value": 10,
+      "label": "Extremely easy"
+    }
+  ],
+  "novice_set1": [
+    {
+      "id": "N1Q1",
+      "title": "Count visits to the target AOI",
+      "prompt": "Which participant record has more visits to {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})? Use only the two records named below.",
+      "steps": [
+        "In Images, select dataset MIT1003 and stimulus i05june05_static_street_boston_p1010806.jpeg.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Select only participants ajs and emb. Keep the dataset, stimulus, AOI, and other settings unchanged.",
+        "Choose Scarf Plot. Display ajs and count its visits to {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}).",
+        "Display emb with the same settings and count its visits to {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}).",
+        "A visit is one uninterrupted run of fixations inside the AOI. Leaving and later returning starts a new visit."
+      ],
+      "visualizations": [
+        "Scarf Plot"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has more visits than emb."
+        },
+        {
+          "id": "B",
+          "text": "emb has more visits than ajs."
+        },
+        {
+          "id": "C",
+          "text": "They have the same number of visits."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "N1Q2",
+      "title": "Compare focal fixation share in Episode A",
+      "prompt": "Which record has the greater share of fixation time classified as focal in Episode A?",
+      "steps": [
+        "In Videos, choose dataset {{VIDEO_DATASET_NAME}} (version {{VIDEO_DATASET_VERSION}}).",
+        "Choose the exact video {{EPISODE_A_VIDEO_FILENAME}}. Use only participants ajs and emb.",
+        "Choose Video with Fixation Marker. This set uses one view at a time; do not open K-Timeline.",
+        "Play ajs from {{EPISODE_A_START_TIME}} to {{EPISODE_A_END_TIME}} at {{EPISODE_A_PLAYBACK_SPEED}} playback speed. Inspect fixation markers and the K-Coefficient value from {{K_COEFFICIENT_FIELD_SOURCE}}.",
+        "Repeat for emb using the same video, time range, playback speed, and settings.",
+        "Treat K>0 as focal, K<0 as ambient, and K=0 as neutral. Compare focal fixation duration divided by total fixation duration; do not compare raw duration alone."
+      ],
+      "visualizations": [
+        "Video with Fixation Marker"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has the greater focal-fixation share."
+        },
+        {
+          "id": "B",
+          "text": "emb has the greater focal-fixation share."
+        },
+        {
+          "id": "C",
+          "text": "The focal-fixation shares are equal."
+        },
+        {
+          "id": "D",
+          "text": "The video, record, or K-Coefficient information is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "N1Q3",
+      "title": "Compare total dwell in the target AOI",
+      "prompt": "Which participant record has the greater total dwell time in {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Return to Images. Select dataset MIT1003 and stimulus i05june05_static_street_boston_p1010806.jpeg.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Select only ajs and emb, and use AOI Timeline.",
+        "Display ajs and find the total fixation duration inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}). Then display emb with the same settings.",
+        "Total dwell is the sum of fixation durations inside the AOI. Ignore time outside the AOI and do not compare percentages."
+      ],
+      "visualizations": [
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has greater total dwell time."
+        },
+        {
+          "id": "B",
+          "text": "emb has greater total dwell time."
+        },
+        {
+          "id": "C",
+          "text": "Their total dwell times are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "N1Q4",
+      "title": "Compare target AOI dwell share",
+      "prompt": "Which participant has a greater percentage of fixation time inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Keep dataset MIT1003 and stimulus i05june05_static_street_boston_p1010806.jpeg selected.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Select only participants ff and hp. Use AOI Timeline and display ff first, then hp, keeping the same AOI and settings.",
+        "For each participant, calculate target AOI dwell divided by total fixation duration, multiplied by 100.",
+        "Compare percentages, not raw dwell totals."
+      ],
+      "visualizations": [
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ff has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "B",
+          "text": "hp has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "C",
+          "text": "Their target-AOI dwell percentages are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    }
+  ],
+  "novice_set2": [
+    {
+      "id": "N2Q1",
+      "title": "Count visits to the target AOI using two views",
+      "prompt": "Which participant record has more visits to {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "In Images, select dataset MIT1003 and stimulus i05june05_static_street_boston_p1010806.jpeg. Select only ajs and emb.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Set the left panel to Scarf Plot and the right panel to AOI Timeline. Display ajs in both panels.",
+        "Count ajs's uninterrupted visits to {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}) in Scarf Plot; use AOI Timeline to check the AOI intervals.",
+        "Display emb in both panels using the same settings and repeat.",
+        "A visit is one uninterrupted run of fixations inside the AOI. Leaving and returning starts a new visit."
+      ],
+      "visualizations": [
+        "Scarf Plot",
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has more visits than emb."
+        },
+        {
+          "id": "B",
+          "text": "emb has more visits than ajs."
+        },
+        {
+          "id": "C",
+          "text": "They have the same number of visits."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "N2Q2",
+      "title": "Compare focal fixation share using two views",
+      "prompt": "Which record has the greater share of fixation time classified as focal in Episode A?",
+      "steps": [
+        "In Videos, choose dataset {{VIDEO_DATASET_NAME}} (version {{VIDEO_DATASET_VERSION}}) and video {{EPISODE_A_VIDEO_FILENAME}}. Select only ajs and emb.",
+        "Set the left panel to Video with Fixation Marker and the right panel to K-Timeline. Keep the views synchronized.",
+        "Play ajs from {{EPISODE_A_START_TIME}} to {{EPISODE_A_END_TIME}} at {{EPISODE_A_PLAYBACK_SPEED}} playback speed. Use the synchronized fixation markers and K-Timeline values, using {{K_COEFFICIENT_FIELD_SOURCE}} as the K source.",
+        "Switch both panels to emb and repeat with the same video, interval, speed, and settings.",
+        "K>0 is focal, K<0 is ambient, and K=0 is neutral. Compare focal duration divided by total fixation duration, not raw duration."
+      ],
+      "visualizations": [
+        "Video with Fixation Marker",
+        "K-Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has the greater focal-fixation share."
+        },
+        {
+          "id": "B",
+          "text": "emb has the greater focal-fixation share."
+        },
+        {
+          "id": "C",
+          "text": "The focal-fixation shares are equal."
+        },
+        {
+          "id": "D",
+          "text": "The video, record, or K-Coefficient information is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "N2Q3",
+      "title": "Compare total dwell in the target AOI using two views",
+      "prompt": "Which participant record has the greater total dwell time in {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ajs and emb.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Set the left panel to Scarf Plot and right panel to AOI Timeline. Display ajs in both panels, then emb in both panels.",
+        "For each record, use AOI Timeline to sum fixation durations inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}). Use Scarf Plot to locate the corresponding visits.",
+        "Compare total dwell time only; do not compare percentages. Keep the AOI and other settings unchanged."
+      ],
+      "visualizations": [
+        "Scarf Plot",
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has greater total dwell time."
+        },
+        {
+          "id": "B",
+          "text": "emb has greater total dwell time."
+        },
+        {
+          "id": "C",
+          "text": "Their total dwell times are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "N2Q4",
+      "title": "Compare target AOI dwell share using two views",
+      "prompt": "Which participant has a greater percentage of fixation time inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ff and hp.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Set the left panel to Attention Map and right panel to AOI Timeline. Display ff in both panels, then hp in both panels.",
+        "Keep the target AOI and all settings unchanged. Use AOI Timeline values to calculate target-AOI dwell / total fixation duration × 100.",
+        "Use Attention Map to locate the relevant area; do not infer the answer from color intensity alone. Compare percentages."
+      ],
+      "visualizations": [
+        "Attention Map",
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ff has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "B",
+          "text": "hp has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "C",
+          "text": "Their target-AOI dwell percentages are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    }
+  ],
+  "expert_set1": [
+    {
+      "id": "E1Q1",
+      "title": "Compare target AOI dwell share",
+      "prompt": "Which record has the greater percentage of fixation time inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "In Images, select dataset MIT1003 and stimulus i05june05_static_street_boston_p1010806.jpeg. Select only ajs and emb.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Use AOI Timeline. Display ajs and determine target-AOI dwell / total fixation duration × 100. Repeat for emb with unchanged settings.",
+        "Compare the calculated shares; do not compare raw dwell durations."
+      ],
+      "visualizations": [
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has the greater target-AOI dwell share."
+        },
+        {
+          "id": "B",
+          "text": "emb has the greater target-AOI dwell share."
+        },
+        {
+          "id": "C",
+          "text": "The shares are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "E1Q2",
+      "title": "Compare returns to each participant's main viewing area",
+      "prompt": "Which participant has more returns to their own main viewing area?",
+      "steps": [
+        "In Images, select dataset MIT1003 and stimulus i05june05_static_street_boston_p1010806.jpeg. Select only ff and hp.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Use the frozen set of comparison AOI names and boundaries: {{COMPARISON_AOI_LABELS_AND_BOUNDARIES}}.",
+        "In Scarf Plot, display ff and identify ff's main viewing area: the AOI with the greatest total dwell for ff.",
+        "For ff, use Transition Matrix to count transitions from another AOI back into ff's own main viewing area. Do not count a transition that stays within the same AOI.",
+        "Repeat for hp. Identify hp's main viewing area from hp's own Scarf Plot and count returns into that area in hp's Transition Matrix.",
+        "Compare the two return counts. The main area can differ between ff and hp; do not assume it is the same AOI."
+      ],
+      "visualizations": [
+        "Scarf Plot",
+        "Transition Matrix"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ff has more returns to ff's own main viewing area."
+        },
+        {
+          "id": "B",
+          "text": "hp has more returns to hp's own main viewing area."
+        },
+        {
+          "id": "C",
+          "text": "They have the same number of returns."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "E1Q3",
+      "title": "Compare total dwell in the target AOI",
+      "prompt": "Which participant record has the greater total dwell time in {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ajs and emb.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Use AOI Timeline. Display ajs, then emb, keeping the same target AOI and settings.",
+        "For each record, sum fixation durations inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}). Ignore time outside the AOI and do not compare percentages."
+      ],
+      "visualizations": [
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has greater total dwell time."
+        },
+        {
+          "id": "B",
+          "text": "emb has greater total dwell time."
+        },
+        {
+          "id": "C",
+          "text": "Their total dwell times are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "E1Q4",
+      "title": "Compare target AOI dwell share",
+      "prompt": "Which participant has a greater percentage of fixation time inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Use Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ff and hp.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Use AOI Timeline. Display ff, then hp, keeping the same target AOI and settings.",
+        "For each participant, calculate target-AOI dwell / total fixation duration × 100 and compare the percentages."
+      ],
+      "visualizations": [
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ff has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "B",
+          "text": "hp has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "C",
+          "text": "Their target-AOI dwell percentages are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    }
+  ],
+  "expert_set2": [
+    {
+      "id": "E2Q1",
+      "title": "Compare target AOI dwell share using two views",
+      "prompt": "Which record has the greater percentage of fixation time inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ajs and emb.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Set the left panel to AOI Timeline and the right panel to Attention Map. Display ajs in both panels, then emb in both.",
+        "Use AOI Timeline values to calculate target-AOI dwell / total fixation duration × 100. Use Attention Map to locate the area, not to estimate the numeric answer from color.",
+        "Keep the AOI and all other settings unchanged, then compare the two shares."
+      ],
+      "visualizations": [
+        "AOI Timeline",
+        "Attention Map"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has the greater target-AOI dwell share."
+        },
+        {
+          "id": "B",
+          "text": "emb has the greater target-AOI dwell share."
+        },
+        {
+          "id": "C",
+          "text": "The shares are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "E2Q2",
+      "title": "Compare returns to each participant's main viewing area using two views",
+      "prompt": "Which participant has more returns to their own main viewing area?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ff and hp.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Use the frozen set of comparison AOI names and boundaries: {{COMPARISON_AOI_LABELS_AND_BOUNDARIES}}.",
+        "Set the left panel to Scarf Plot and right panel to Transition Matrix. Display ff in both. Use Scarf Plot to identify ff's main viewing area (the AOI with ff's greatest total dwell), then count transitions from other AOIs back into that area in the matrix.",
+        "Display hp in both panels. Identify hp's own main viewing area from hp's Scarf Plot and count transitions from other AOIs back into that area in hp's matrix.",
+        "Compare return counts. Do not assume the two participants share a main AOI and do not count transitions that stay within one AOI."
+      ],
+      "visualizations": [
+        "Scarf Plot",
+        "Transition Matrix"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ff has more returns to ff's own main viewing area."
+        },
+        {
+          "id": "B",
+          "text": "hp has more returns to hp's own main viewing area."
+        },
+        {
+          "id": "C",
+          "text": "They have the same number of returns."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "E2Q3",
+      "title": "Compare total dwell in the target AOI using two views",
+      "prompt": "Which participant record has the greater total dwell time in {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ajs and emb.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Set the left panel to Scarf Plot and right panel to AOI Timeline. Display ajs in both panels, then emb in both.",
+        "Use AOI Timeline to sum fixation durations inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}}) for each participant. Use Scarf Plot to see the visit sequence; do not use it to estimate the numeric total.",
+        "Compare total dwell only, not percentages."
+      ],
+      "visualizations": [
+        "Scarf Plot",
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ajs has greater total dwell time."
+        },
+        {
+          "id": "B",
+          "text": "emb has greater total dwell time."
+        },
+        {
+          "id": "C",
+          "text": "Their total dwell times are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    },
+    {
+      "id": "E2Q4",
+      "title": "Compare target AOI dwell share using two views",
+      "prompt": "Which participant has a greater percentage of fixation time inside {{TARGET_AOI_LABEL}} (fixed boundary: {{TARGET_AOI_BOUNDARY}})?",
+      "steps": [
+        "Select Images, dataset MIT1003, stimulus i05june05_static_street_boston_p1010806.jpeg, and only ff and hp.",
+        "Use the fixed dashboard/app version {{DASHBOARD_APP_VERSION}} and fixation/AOI preprocessing version {{FIXATION_AOI_PREPROCESSING_VERSION}} throughout this task.",
+        "Set the left panel to Attention Map and right panel to AOI Timeline. Display ff in both panels, then hp in both.",
+        "Keep the AOI and settings unchanged. Use AOI Timeline to calculate target-AOI dwell / total fixation duration × 100.",
+        "Use Attention Map to locate the target region; use numeric timeline values to compare percentages, not color intensity."
+      ],
+      "visualizations": [
+        "Attention Map",
+        "AOI Timeline"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "text": "ff has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "B",
+          "text": "hp has a greater target-AOI dwell percentage."
+        },
+        {
+          "id": "C",
+          "text": "Their target-AOI dwell percentages are equal."
+        },
+        {
+          "id": "D",
+          "text": "A required record or view is unavailable, so I cannot determine the answer."
+        }
+      ]
+    }
+  ]
+}

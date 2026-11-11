@@ -1,0 +1,263 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{eyeblue}{HTML}{203B78}
+\definecolor{eyegreen}{HTML}{1B756B}
+\setlist{nosep,leftmargin=*}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+
+\newcommand{\choices}[5]{\begin{enumerate}[label=\Alph*.,leftmargin=2em,itemsep=0.15em,topsep=0.2em]\item #2\item #3\item #4\item #5\end{enumerate}}
+\newcommand{\tasktitle}[1]{\vspace{0.4em}\noindent\textbf{#1}\par}
+\newcommand{\fillline}[1]{\rule{#1}{0.4pt}}
+
+\title{\textcolor{eyeblue}{EyeExplore User Study}\\
+\large Four-Set Multiple-Choice Task Booklet}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Participant instructions}
+You will complete four short questions using the EyeExplore dashboard. Follow
+the steps given by the study leader. Each question has one correct answer.
+Choose exactly one option for every question. You do not need to write an
+explanation.
+
+The study leader will set up the dataset, stimulus, records, and dashboard
+views before you begin. Do not change those settings unless the leader asks
+you to. If a required view does not load, tell the study leader and wait.
+An AOI is a marked region on the image. A visit means looking within that
+region continuously before moving away. ``Focal'' means focused inspection;
+``ambient'' means broader search.
+
+\section*{Study leader: use before the session}
+\textbf{Do not give this section or the answer key to participants.} Each
+participant completes exactly one of the four sets. Randomly assign novices
+between Sets 1 and 2, and experts between Sets 3 and 4. Give every participant
+the same five-minute introduction. Keep the study data and settings fixed
+within matched sets.
+
+\subsection*{Set-up card - fill and freeze before recruiting}
+Use symbolic record labels in the booklet and map them to real IDs on the
+private operator copy. Use the same mapping for all participants.
+
+\begin{center}
+\begin{tabular}{p{0.34\linewidth}p{0.55\linewidth}}
+\toprule
+Study item & Locked value \\
+\midrule
+Dataset and version & \fillline{8cm} \\
+Image stimulus & \fillline{8cm} \\
+Target AOI name and boundary & \fillline{8cm} \\
+Comparison AOI name and boundary & \fillline{8cm} \\
+Video stimulus / episode A & \fillline{8cm} \\
+Video stimulus / episode B & \fillline{8cm} \\
+Video stimulus / episode C & \fillline{8cm} \\
+Video stimulus / episode D & \fillline{8cm} \\
+Record P1 actual ID & \fillline{8cm} \\
+Record P2 actual ID & \fillline{8cm} \\
+Record P3 actual ID & \fillline{8cm} \\
+Record P4 actual ID & \fillline{8cm} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Definitions used for scoring}
+\begin{itemize}
+  \item A fixation is assigned to an AOI when its gaze point falls inside the
+  locked AOI boundary. Use this rule for every participant record.
+  \item A visit to an AOI is one uninterrupted run of fixations in that AOI.
+  Consecutive fixations in the same AOI count as one visit. Leaving and later
+  returning counts as a new visit.
+  \item Total dwell time in an AOI is the sum of the durations of all fixations
+  assigned to that AOI. Do not include time outside the AOI.
+  \item Dwell share is total dwell time in the Target AOI divided by total
+  fixation duration for that record, multiplied by 100.
+  \item A directed transition from AOI X to AOI Y occurs when one visit to X is
+  followed immediately by a visit to Y. Count each X-to-Y change once. Do not
+  count X-to-X as a transition.
+  \item For video episodes, a fixation is focal when its K-Coefficient is above
+  zero, ambient when it is below zero, and neutral when it equals zero. An
+  episode is primarily focal only when more than 50\% of its total fixation
+  duration has a positive K-Coefficient. Use fixation duration as the weight.
+\end{itemize}
+
+\textbf{Layout conditions}
+\begin{itemize}
+  \item \textbf{One-view condition:} show only one visualization at a time.
+  Participants may switch views when the task instructions allow it, but must
+  not see two visualizations side by side. For Set 1, use the Scarf Plot for
+  Question 1 and the video with fixation marker but without the K-Timeline for
+  Question 2. For Set 3, use one view at a time and let the participant switch
+  between the named views.
+  \item \textbf{Two-view condition:} show the named complementary views at the
+  same time. For Set 2, show Scarf Plot and AOI Timeline together for Question
+  1, and synchronized video plus K-Timeline for Question 2. For Set 4, show the
+  named views together as instructed.
+\end{itemize}
+
+The current application must have a true one-view study layout before this
+booklet is used. If it only displays two panels, do not call that the one-view
+condition. Keep image size, scale, selected records, AOI boundaries, video
+episode, and playback position the same between matched groups.
+
+\section*{Set 1 - Novice users, one view at a time}
+\textbf{For the study leader:} Use the locked image stimulus and P1/P2 records.
+Show one visualization at a time. For Question 1, display the Scarf Plot. For
+Question 2, display the video and fixation marker without the K-Timeline.
+Questions 3 and 4 are shared anchor questions; follow the one-view condition
+while the participant answers. Allow about 25 minutes for the four questions.
+
+\tasktitle{Question 1 - Visits to the Target AOI (H1)}
+Compare P1 and P2 on the Scarf Plot. Which record has more visits to the Target
+AOI? Use the visit definition in the study leader's introduction.
+\choices{}{P1 has more visits.}{P2 has more visits.}{P1 and P2 have the same number of visits.}{A required record or view is missing.}
+
+\tasktitle{Question 2 - Video episode (H1; linked to original H3)}
+Watch episodes A and B with the fixation marker. Which episode shows primarily
+focused inspection (focal attention)?
+\choices{}{Episode A only.}{Episode B only.}{Both episodes.}{Neither episode.}
+
+\tasktitle{Question 3 - Target-AOI dwell time (H2 shared question)}
+Compare P1 and P2. Which record has the greater total dwell time in the Target
+AOI? Use the sum of fixation durations inside the AOI.
+\choices{}{P1 has the greater total dwell time.}{P2 has the greater total dwell time.}{P1 and P2 have equal total dwell time.}{A required record or view is missing.}
+
+\tasktitle{Question 4 - Target-AOI dwell share (H2 shared question)}
+Compare P3 and P4. Which record has the greater percentage of its total
+fixation duration in the Target AOI?
+\choices{}{P3 has the greater dwell share.}{P4 has the greater dwell share.}{P3 and P4 have equal dwell share.}{A required record or view is missing.}
+
+\clearpage
+\section*{Set 2 - Novice users, two views at the same time}
+\textbf{For the study leader:} Use the same data and record mapping as Set 1.
+Show the Scarf Plot and AOI Timeline together for Question 1. Show the video
+and synchronized K-Timeline together for Question 2. Keep the shared anchor
+questions and selected records the same as Set 1. Allow about 25 minutes for
+the four questions.
+
+\tasktitle{Question 1 - Visits to the Target AOI (H1)}
+Compare P1 and P2 using the Scarf Plot and AOI Timeline together. Which record
+has more visits to the Target AOI? A visit is one uninterrupted run of
+fixations in that AOI.
+\choices{}{P1 has more visits.}{P2 has more visits.}{P1 and P2 have the same number of visits.}{A required record or view is missing.}
+
+\tasktitle{Question 2 - Video episode (H1; linked to original H3)}
+Watch episodes A and B with the synchronized K-Timeline. Which episode shows
+primarily focused inspection (focal attention)?
+\choices{}{Episode A only.}{Episode B only.}{Both episodes.}{Neither episode.}
+
+\tasktitle{Question 3 - Target-AOI dwell time (H2 shared question)}
+Compare P1 and P2. Which record has the greater total dwell time in the Target
+AOI? Use the sum of fixation durations inside the AOI.
+\choices{}{P1 has the greater total dwell time.}{P2 has the greater total dwell time.}{P1 and P2 have equal total dwell time.}{A required record or view is missing.}
+
+\tasktitle{Question 4 - Target-AOI dwell share (H2 shared question)}
+Compare P3 and P4. Which record has the greater percentage of its total
+fixation duration in the Target AOI?
+\choices{}{P3 has the greater dwell share.}{P4 has the greater dwell share.}{P3 and P4 have equal dwell share.}{A required record or view is missing.}
+
+\clearpage
+\section*{Set 3 - Expert users, one view at a time}
+\textbf{For the study leader:} Use the same locked study files and P1--P4
+mapping used in all other sets. For Questions 1 and 2, participants may switch
+between the named views, but show only one view at a time. Use the same episode
+and record settings in both expert sets. Allow about 25 minutes for the four
+questions.
+
+\tasktitle{Question 1 - Target-AOI dwell share (H1)}
+Compare P1 and P2. Which record has the greater percentage of its total
+fixation duration in the Target AOI? Calculate dwell share as Target-AOI dwell
+time divided by total fixation duration.
+\choices{}{P1 has the greater dwell share.}{P2 has the greater dwell share.}{P1 and P2 have equal dwell share.}{A required record or view is missing.}
+
+\tasktitle{Question 2 - Directed AOI transitions (H1)}
+Compare P3 and P4. Which record has more transitions from AOI X directly to
+AOI Y? Count each X-to-Y change once; do not count other transitions.
+\choices{}{P3 has more X-to-Y transitions.}{P4 has more X-to-Y transitions.}{P3 and P4 have the same number of X-to-Y transitions.}{A required record or view is missing.}
+
+\tasktitle{Question 3 - Target-AOI dwell time (H2 shared question)}
+Compare the common anchor records P1 and P2. Which has the greater total dwell
+time in the Target AOI?
+\choices{}{P1 has the greater total dwell time.}{P2 has the greater total dwell time.}{P1 and P2 have equal total dwell time.}{A required record or view is missing.}
+
+\tasktitle{Question 4 - Target-AOI dwell share (H2 shared question)}
+Compare the common anchor records P3 and P4. Which has the greater percentage
+of its total fixation duration in the Target AOI?
+\choices{}{P3 has the greater dwell share.}{P4 has the greater dwell share.}{P3 and P4 have equal dwell share.}{A required record or view is missing.}
+
+\clearpage
+\section*{Set 4 - Expert users, two views at the same time}
+\textbf{For the study leader:} Use the same locked study files and P1--P4
+mapping used in all other sets. For Question 1, display the AOI Timeline and Attention Map together.
+For Question 2, display the Transition Matrix and Scarf Plot together. Keep the
+shared anchor questions and selected records the same as Set 3. Allow about 25
+minutes for the four questions.
+
+\tasktitle{Question 1 - Target-AOI dwell share (H1)}
+Compare P1 and P2 using the AOI Timeline and Attention Map together. Which
+record has the greater percentage of its total fixation duration in the Target
+AOI? Calculate dwell share as Target-AOI dwell time divided by total fixation
+duration.
+\choices{}{P1 has the greater dwell share.}{P2 has the greater dwell share.}{P1 and P2 have equal dwell share.}{A required record or view is missing.}
+
+\tasktitle{Question 2 - Directed AOI transitions (H1)}
+Compare P3 and P4 using the Transition Matrix and Scarf Plot together. Which
+record has more transitions from AOI X directly to AOI Y? Count each X-to-Y
+change once; do not count other transitions.
+\choices{}{P3 has more X-to-Y transitions.}{P4 has more X-to-Y transitions.}{P3 and P4 have the same number of X-to-Y transitions.}{A required record or view is missing.}
+
+\tasktitle{Question 3 - Target-AOI dwell time (H2 shared question)}
+Compare the common anchor records P1 and P2. Which has the greater total dwell
+time in the Target AOI?
+\choices{}{P1 has the greater total dwell time.}{P2 has the greater total dwell time.}{P1 and P2 have equal total dwell time.}{A required record or view is missing.}
+
+\tasktitle{Question 4 - Target-AOI dwell share (H2 shared question)}
+Compare the common anchor records P3 and P4. Which has the greater percentage
+of its total fixation duration in the Target AOI?
+\choices{}{P3 has the greater dwell share.}{P4 has the greater dwell share.}{P3 and P4 have equal dwell share.}{A required record or view is missing.}
+
+\clearpage
+\section*{Operator answer key and scoring sheet}
+Complete this sheet from the locked source data before the first session. The
+same answers must apply to every participant assigned to a matched set. Do not
+infer answers from the response frequency or from the study hypothesis.
+
+\begin{center}
+\begin{tabular}{p{0.28\linewidth}p{0.32\linewidth}p{0.25\linewidth}}
+\toprule
+Question & Exact scoring rule & Correct option \\
+\midrule
+Set 1/2 Q1 & Compare visit counts: P1 vs P2 & \fillline{2cm} \\
+Set 1/2 Q2 & Episode A/B focal duration share $>50\%$ & \fillline{2cm} \\
+All sets Q3 & Compare Target-AOI dwell time: P1 vs P2 & \fillline{2cm} \\
+All sets Q4 & Compare Target-AOI dwell share: P3 vs P4 & \fillline{2cm} \\
+Set 3/4 Q1 & Compare Target-AOI dwell share: P1 vs P2 & \fillline{2cm} \\
+Set 3/4 Q2 & Compare direct X-to-Y transition counts: P3 vs P4 & \fillline{2cm} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For every participant, record the assigned set, experience group, answer to
+each question, correctness (0 or 1), and time per question. Do not put the
+answer key on participant copies. Report question-level and total accuracy;
+compare matched layouts within each experience group for H1; compare novices
+and experts on Questions 3 and 4 for H2.
+
+\section*{Stop rule}
+Do not administer a question if the study leader cannot identify one correct
+option from the frozen data. Check especially that the two records are not
+exactly tied unless the tie option is correct, all Target AOIs are visible, and
+video episodes contain valid K-Coefficient values. Record a technical problem
+separately and do not substitute another record during a session.
+
+\end{document}

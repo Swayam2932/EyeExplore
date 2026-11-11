@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}EyeExplore User Study{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('user_study.static', filename='study.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="EyeExplore home">
+        <span class="brand-mark">◉</span><span>EyeExplore</span>
+      </a>
+      <span class="study-label">Participant Study</span>
+    </header>
+    <main class="page-wrap">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">EyeExplore · User Study</footer>
+  </body>
+</html>

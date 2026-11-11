@@ -1,0 +1,195 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{eyeblue}{HTML}{203B78}
+\definecolor{eyegreen}{HTML}{1B756B}
+\setlist{nosep,leftmargin=*}
+\setlength{\parskip}{0.55em}
+\setlength{\parindent}{0pt}
+
+\title{\textcolor{eyeblue}{EyeExplore User Study}\\
+\large Final Hypotheses and Evaluation Plan}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Key terms}
+This report proposes two testable ideas about using different views. The first asks
+whether looking at two related views together helps people answer analysis
+questions. The second asks whether this approach helps novice users perform
+closer to experienced users. 
+
+\begin{itemize}
+  \item A \textbf{view} is one display of gaze data, such as an attention map,
+  scanpath, or timeline.
+  \item In the \textbf{one-view layout}, a participant sees one display at a
+  time and may switch to another display when needed.
+  \item In the \textbf{two-view layout}, two displays of the same study data
+  are visible side by side. The views are chosen because they show related
+  information.
+  \item A \textbf{novice} is a person with little or no previous experience
+  analyzing eye-tracking data. An \textbf{expert} is a person with regular,
+  substantial experience doing this analysis. The study team must set the exact
+  experience rule before recruiting.
+\end{itemize}
+
+\section{The two final hypotheses}
+
+\subsection*{H1 - Seeing two related views helps people analyze gaze data}
+\textbf{Hypothesis:} People who can see two related views at the same time will
+answer gaze-analysis questions more accurately than people who can see only
+one view at a time. They may also finish the questions faster.
+
+\textbf{What this means in practice:} Suppose a researcher wants to know both
+where people looked and the order in which they looked there. An attention map
+can show the main areas of interest, while a scanpath or AOI timeline can show
+the order and timing of gaze. With one view, the researcher must inspect one
+display, switch views, and remember what was shown. With two views, the
+researcher can compare the related evidence side by side. If the two displays
+make the same pattern easier to check, the researcher should make fewer wrong
+answers.
+
+The same idea applies to video. A video shows the scene and the viewer's gaze
+movement. A synchronized K-Coefficient timeline shows the attention value at
+the corresponding time. Seeing the video and timeline together may help a
+person connect a change in the measured attention value to what was happening
+in the video. This is one example of two related views; the study is not
+claiming to test all 13 visualization types separately.
+
+\textbf{What result would support H1:} Within the novice group, the two-view
+group should get more answers right than the one-view group in less time. The same
+comparison is made within the expert group. Faster completion in the two-view
+group would add support, but accuracy can be the main result. If the groups score
+about the same, or the one-view group scores higher, the study does not support
+the prediction of proposed hypothesis.
+
+\subsection*{H2 - Two-view EyeExplore can bring novice results closer to expert results}
+\textbf{Hypothesis:} After the same short introduction, novice users working
+with two related views will answer the shared analysis questions nearly as
+accurately as expert users working with the same two-view setup.
+
+\textbf{What this means in practice:} Experts have more experience interpreting
+gaze patterns. The question is whether EyeExplore's two-view layout and a short
+introduction help novices make correct findings that are close to the findings
+made by experts. This does not assume that the two groups will have identical
+speed or experience. It predicts that their accuracy on the same questions can
+be close.
+
+For this study, ``nearly as accurately'' means that the novice group's score on
+the shared questions is no more than some X percentage points below the expert
+group's score (X can be dependent on dataset or level of question asked , so we need to work on X). For example, if experts answer 80\% correctly, novices would
+need to answer at least 80-X\% correctly to meet this proposed rule. The X-point
+margin is a study decision, not a known fact; the team should approve it before
+collecting data. The results must also be precise enough to rule out a larger
+gap. If the sample is too small to make that conclusion, report the result as
+unclear rather than saying the groups are equal.
+
+\section{Study design}
+Use a 2 by 2 design. The two factors are user experience (novice or expert) and
+screen layout (one view or two views side by side).
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Group & Experience & Layout \\
+\midrule
+Set 1 & Novice & One view at a time \\
+Set 2 & Novice & Two related views at the same time \\
+Set 3 & Expert & One view at a time \\
+Set 4 & Expert & Two related views at the same time \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Each participant completes one set only. Within novice volunteers, assign
+participants at random to Set 1 or Set 2. Do the same within expert
+volunteers. This avoids participants seeing the same questions twice and
+remembering the answers. Use the same study files, stimuli, records, and
+question wording in the two layout groups within each experience level.
+
+\textbf{Important interface requirement.} The study needs a real one-view
+condition: one visualization occupies the work area, and the second view is
+not visible. Two identical views shown in two panels do not count as one view.
+If the current EyeExplore app has no one-view mode, add or configure a controlled
+study mode before recruitment. Do not manually cover a panel differently for
+different participants.
+
+\section{How the questions evaluate the hypotheses}
+Every booklet has four scored multiple-choice questions:
+
+\begin{itemize}
+  \item Questions 1 and 2 test H1. The novice questions use simpler gaze
+  comparisons. The expert questions use more complex comparisons. Within each
+  experience level, the one-view and two-view groups receive the same tasks.
+  Thus, compare Set 1 with Set 2 and Set 3 with Set 4 for H1.
+  \item Questions 3 and 4 are identical in all four sets. They are the shared
+  anchor questions for H2. Compare novice and expert scores on these questions,
+  especially Set 2 with Set 4 for the stated experience-gap claim.
+\end{itemize}
+
+All questions have one correct answer. Options include an equality or
+``neither/both'' choice where appropriate. The answer key is based on fixed
+data and explicit rules, not on a researcher's opinion about what a plot looks
+like.
+
+\section{Procedure}
+\begin{enumerate}
+  \item Recruit novice and expert users using definitions written before the
+  study. For example, novices have not analyzed eye-tracking data before;
+  experts have at least two years of regular eye-tracking analysis experience.
+  Record experience separately from questionnaire answers.
+  \item Give every participant the same five-minute introduction. Explain how
+  to select the dataset, stimulus, records, and visualization. Do not teach the
+  answers to the study tasks.
+  \item Give each participant the booklet set assigned to their group. Read
+  instructions as written and do not hint at a correct answer. Allow about 25
+  minutes for the four tasks in the set.
+  \item Record correctness and task completion time for each question. Use the
+  same start and stop rule for everyone (start when the task screen is ready;
+  stop when the participant submits an answer).
+  \item Record technical failures separately. If a required file or view does
+  not load, pause that participant's task and do not count it as an incorrect
+  answer.
+\end{enumerate}
+
+\section{How to score and compare results}
+Score a correct answer as 1 and an incorrect answer as 0. A question left blank
+after the set time limit is incorrect; a documented technical failure is
+missing data, not an incorrect answer. The primary outcome is the percent of
+questions answered correctly. Also report median time per question and the
+number of technical failures.
+
+For H1, compare accuracy and time between one-view and two-view groups
+separately for novices and experts. Then report the overall layout effect. In
+simple terms, calculate how often each group answered correctly and how long
+they took. If the study has enough participants, a statistician can also use a
+model that checks whether the layout effect changes between novice and expert
+users. A higher score in the two-view condition supports H1. Faster time is
+supporting evidence, not a requirement for H1 if accuracy improves.
+
+For H2, compare the two shared questions between novice and expert users in the
+two-view condition. Report the score difference in percentage points and show a
+95\% confidence interval. This interval is a range around the measured
+difference that shows how uncertain the estimate is. H2 is supported only if
+the data are precise enough to show that the novice score is within the
+pre-agreed 10-point margin. If the range is too wide, call the result
+inconclusive rather than claiming that the groups are equal.
+
+\textbf{Sample size matters.} Four questions per person give a short pilot
+measure, not a strong final measure of expertise. A publication-level study
+should include more matched items or repeated, equivalent task cases and use a
+sample-size calculation before recruitment. Keep the four-question booklet as
+the starter version, and treat its findings as preliminary unless the study is
+expanded.
+
+\end{document}

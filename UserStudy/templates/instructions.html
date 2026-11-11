@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Instructions · EyeExplore Study{% endblock %}
+{% block content %}
+<section class="card wide-card">
+  <p class="eyebrow">Before you begin</p>
+  <h1>Study instructions</h1>
+  <p class="lead">You will complete four tasks in EyeExplore. Follow the steps shown with each task and answer from the dashboard data.</p>
+  <div class="set-chip">{{ cohort|title }} participant · Set {{ set_number }}</div>
+  <ol class="instructions-list">
+    <li>Complete the four tasks in order. Read every numbered step and inspect only the participant records and dashboard views named in that task.</li>
+    <li>For each task, choose exactly one answer: A, B, C, or D. Choose D only if a required record, view, or data field is unavailable.</li>
+    <li>After submitting an answer, rate each visualization used in that task from 1 (Very difficult to use) to 10 (Extremely easy to use). This is a separate step from answering.</li>
+    <li>Your task time is measured from when the question appears until you submit your answer. The visualization rating is not included in that task time.</li>
+    <li>Do not change the dataset, stimulus, participant selection, AOI, playback interval, or other study settings. Use the fixed values and steps provided.</li>
+    <li>If a named view, record, stimulus, or required information is missing or fails to load, stop and tell the study leader. Do not guess or substitute another item.</li>
+    <li>Your answer and visualization ratings are saved as you go. If the page reloads, continue with the same participant ID and access code.</li>
+    <li>After the four tasks, you may optionally leave a written review on a separate final page.</li>
+    <li>Wait for the saved confirmation before closing this page.</li>
+  </ol>
+  <div class="notice"><strong>Rating scale:</strong> 1 Very difficult; 2 Difficult; 3 Quite difficult; 4 Slightly difficult; 5 Neutral; 6 Slightly easy; 7 Somewhat easy; 8 Easy; 9 Very easy; 10 Extremely easy. Please do not discuss answers with other participants.</div>
+  <form method="post" class="action-row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="primary-button" type="submit">I am ready — start</button>
+  </form>
+</section>
+{% endblock %}

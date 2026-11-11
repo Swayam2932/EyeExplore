@@ -30,7 +30,7 @@ A web-based interactive dashboard for visualizing and analyzing eye-tracking dat
 - **Three data modes** — images (built-in research datasets), custom data uploads, and video analysis
 - **Interactive AOI tools** — draw rectangle regions directly on stimuli with overlap detection
 - **Real-time video sync** — synced video playback with fixation dot overlay and K-Coefficient timeline scrubber
-- **In-memory processing** — no files are persisted on the server; all data is cleared on refresh
+- **Session-scoped dashboard processing** — uploaded dashboard data is held for the active session; participant-study responses are stored separately in SQLite
 - **Auto-scaling** — automatically detects percentage-based coordinates and scales to pixel dimensions
 - **Export** — download any visualization as PNG via the Plotly toolbar
 
@@ -41,24 +41,63 @@ A web-based interactive dashboard for visualizing and analyzing eye-tracking dat
 ### Prerequisites
 
 - Python 3.10+
+- Node.js and npm
 - Modern web browser (Chrome, Firefox, Safari, or Edge)
 - Minimum 4 GB RAM for large dataset visualizations
 
-### Installation
+### Installation and launch
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd EyeExplore
 
-# Install dependencies
+# Create and activate the project's Python environment
+python3 -m venv eye
+source eye/bin/activate
+
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Launch the dashboard
-python app.py
+# Install the landing site dependencies once
+cd eyeexplore
+npm ci
+cd ..
+
+# Build and launch both applications
+python main.py
 ```
 
-Open your browser and navigate to **http://localhost:8050**
+Open **http://localhost:8000**. The landing page, dashboard, and study portal
+are served from the same address. Launch Dashboard opens the full-page
+workspace in a new browser tab at `/dashboard-app/`.
+
+For each local run, activate the environment and launch the complete app from
+the repository root:
+
+```bash
+source eye/bin/activate
+python main.py
+```
+
+The **Take User Study** button opens `/user-study/`. The novice access code is
+`nuserstudy`; the expert access code is `euserstudy`. Recruiters assign unique
+participant IDs sequentially from 1. Odd IDs receive Set 1 and even IDs receive
+Set 2 within their access-code group. Before collecting responses, fill the
+study values and answer keys in `UserStudy/study_setup.json`. See
+[UserStudy/README.md](UserStudy/README.md) for the questionnaire setup, stored
+data, email configuration, and deployment details. The study saves responses
+and question timing in SQLite and can email a cumulative CSV after completion.
+
+The server needs Python 3.10+, Node.js/npm, and installed
+`eyeexplore/node_modules` dependencies. On the server, create a Python virtual
+environment, install `requirements.txt`, and run `npm ci` in `eyeexplore/`.
+`main.py` builds the Next.js site on each launch, starts both apps on private
+loopback ports, and serves them through Waitress on one public port. Set `PORT`
+to the port required by your host. Set `STUDY_COOKIE_SECURE=1` behind HTTPS and
+configure a stable `STUDY_SECRET_KEY`, persistent `USER_STUDY_DATA_DIR`, and
+SMTP variables if automatic result email is required. Run `main.py` under the
+hosting platform's process manager so it restarts after a server reboot.
 
 The dashboard loads with the **Images** tab active by default.
 

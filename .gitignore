@@ -1,5 +1,9 @@
 # Virtual environment
 eye/
+UserStudy/data/
+UserStudy/*.sqlite3
+UserStudy/*.sqlite3-shm
+UserStudy/*.sqlite3-wal
 __pycache__/
 *.pyc
 *.pyo
